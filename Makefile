@@ -12,10 +12,11 @@ EXAMPLE     := $(wildcard examples/src/*.cpp)
 EXAMPLE_OBJ := $(EXAMPLE:%.cpp=$(BUILD)/%.o)
 TESTS       := $(wildcard tests/*.cpp)
 TEST_OBJ    := $(TESTS:%.cpp=$(BUILD)/%.o)
+COMPDB      := $(BUILD)/compile_commands.json
 
 .PHONY: all run test docs clean
 
-all: $(BUILD)/pf2e_dpr
+all: $(BUILD)/pf2e_dpr $(COMPDB)
 
 $(BUILD)/pf2e_dpr: $(OBJ) $(EXAMPLE_OBJ)
 	$(CXX) $(CXXFLAGS) $^ -o $@
@@ -25,14 +26,22 @@ $(BUILD)/pf2e_tests: $(OBJ) $(TEST_OBJ)
 
 $(BUILD)/examples/%.o: CPPFLAGS += -Iexamples/inc
 
-$(BUILD)/%.o: %.cpp
+# Objects also depend on this Makefile, so changing a flag rebuilds them. Each compile records its
+# command in <object>.json for the compilation database below.
+$(BUILD)/%.o: %.cpp Makefile
 	@mkdir -p $(dir $@)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -MMD -MP -c $< -o $@
+	@printf '{"directory": "%s", "file": "%s", "command": "%s"}\n' \
+		"$(CURDIR)" "$<" "$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@" > $@.json
 
-run: $(BUILD)/pf2e_dpr
+# Compilation database for editors (VS Code C/C++, clangd): the exact commands the build uses.
+$(COMPDB): $(OBJ) $(EXAMPLE_OBJ) $(TEST_OBJ)
+	@{ echo '['; cat $(addsuffix .json,$^) | sed '$$!s/$$/,/'; echo ']'; } > $@
+
+run: $(BUILD)/pf2e_dpr $(COMPDB)
 	./$(BUILD)/pf2e_dpr
 
-test: $(BUILD)/pf2e_tests
+test: $(BUILD)/pf2e_tests $(COMPDB)
 	./$(BUILD)/pf2e_tests
 
 docs:

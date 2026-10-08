@@ -10,6 +10,7 @@
 #include "Actions.h"
 
 #include <functional>
+#include <stdexcept>
 
 namespace
 {
