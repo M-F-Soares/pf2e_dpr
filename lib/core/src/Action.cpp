@@ -7,10 +7,10 @@
 
 #include <stdexcept>
 
-int Encounter::indexOf(const std::string& name) const
+int Encounter::IndexOf(const std::string& characterName) const
 {
     for (std::size_t i = 0; i < party.size(); ++i)
-        if (party[i].name == name)
+        if (party[i].name == characterName)
             return static_cast<int>(i) + 1;
-    throw std::runtime_error("no party member named " + name);
+    throw std::runtime_error("no party member named " + characterName);
 }

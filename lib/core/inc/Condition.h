@@ -11,7 +11,7 @@
 
 /**
  * @brief   The conditions the simulator models.
- * @details Valued conditions use ActiveCondition::value. The name from toString() is also the entry to put in
+ * @details Valued conditions use ActiveCondition::value. The name from ToString() is also the entry to put in
  *          DamageDefenses::immunities for an immunity to the condition.
  */
 enum class ConditionKind
@@ -36,10 +36,10 @@ enum class ConditionKind
 
 /**
  * @brief   Name of a condition as the rules write it ("frightened", "off-guard", ...).
- * @param   [in] k - The condition.
+ * @param   [in] kind - The condition.
  * @return  A static string; "?" for an out-of-range value.
  */
-const char* toString(ConditionKind k);
+const char* ToString(ConditionKind kind);
 
 /**
  * @brief   The modifiers a condition puts on the creature that has it.
@@ -50,7 +50,7 @@ const char* toString(ConditionKind k);
  * @return  The modifiers. Empty when @p value is 0 or less, or when the condition gives no modifier
  *          (concealed, slowed, ...).
  */
-std::vector<Modifier> conditionModifiers(ConditionKind kind, int value);
+std::vector<Modifier> ConditionModifiers(ConditionKind kind, int value);
 
 /**
  * @brief   Change to the number of actions per turn (slowed/stunned/quickened).
@@ -59,4 +59,4 @@ std::vector<Modifier> conditionModifiers(ConditionKind kind, int value);
  * @return  -value for slowed and stunned, +1 for quickened (when @p value is positive), 0 for every other
  *          condition.
  */
-int conditionActionDelta(ConditionKind kind, int value);
+int ConditionActionDelta(ConditionKind kind, int value);

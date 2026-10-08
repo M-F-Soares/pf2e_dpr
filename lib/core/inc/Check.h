@@ -35,10 +35,10 @@ using DegreeDist = std::array<double, kDegrees>;
 
 /**
  * @brief   Name of a degree for reports ("crit fail", "fail", "success", "crit success").
- * @param   [in] d - The degree.
+ * @param   [in] degree - The degree.
  * @return  A static string; "?" for an out-of-range value.
  */
-const char* toString(Degree d);
+const char* ToString(Degree degree);
 
 /**
  * @brief   Fortune state of a d20 roll.
@@ -58,7 +58,7 @@ enum class Fortune
  * @param   [in] hasMisfortune - Whether a misfortune effect applies to the roll.
  * @return  Fortune::None when both or neither apply, otherwise the one that applies.
  */
-Fortune combineFortune(bool hasFortune, bool hasMisfortune);
+Fortune CombineFortune(bool hasFortune, bool hasMisfortune);
 
 /**
  * @brief   Probability of each d20 face (1..20) under the given fortune state.
@@ -66,7 +66,7 @@ Fortune combineFortune(bool hasFortune, bool hasMisfortune);
  * @param   [in] fortune - Whether the d20 is rolled once, or twice keeping the higher or lower result.
  * @return  The probability that the natural result is @p face.
  */
-double d20FaceProbability(int face, Fortune fortune);
+double D20FaceProbability(int face, Fortune fortune);
 
 /**
  * @brief   Degree of success for one check.
@@ -77,7 +77,7 @@ double d20FaceProbability(int face, Fortune fortune);
  * @param   [in] dc - The DC to meet or beat.
  * @return  The degree of success.
  */
-Degree degreeFor(int naturalRoll, int modifier, int dc);
+Degree DegreeFor(int naturalRoll, int modifier, int dc);
 
 /**
  * @brief   Exact degree distribution of `d20 + modifier` against `dc`.
@@ -86,14 +86,14 @@ Degree degreeFor(int naturalRoll, int modifier, int dc);
  * @param   [in] fortune - Fortune state of the roll.
  * @return  The probability of each degree; the entries sum to 1.
  */
-DegreeDist resolveCheck(int modifier, int dc, Fortune fortune = Fortune::None);
+DegreeDist ResolveCheck(int modifier, int dc, Fortune fortune = Fortune::None);
 
 /**
  * @brief   Chance to pass a flat check (d20 >= dc, no modifiers).
  * @param   [in] dc - The flat check's DC (5 for concealed, 11 for hidden, ...).
  * @return  The pass chance, clamped to [0, 1].
  */
-double flatCheckPassChance(int dc);
+double FlatCheckPassChance(int dc);
 
 /**
  * @brief   Shift every outcome by `steps` degrees (clamped).
@@ -102,7 +102,7 @@ double flatCheckPassChance(int dc);
  * @param   [in] steps - Degrees to move each outcome; positive is better, negative is worse.
  * @return  The shifted distribution. Outcomes pushed past either end pile up there.
  */
-DegreeDist shiftDegrees(const DegreeDist& dist, int steps);
+DegreeDist ShiftDegrees(const DegreeDist& dist, int steps);
 
 /**
  * @brief   Replace one degree by another (e.g. crit immunity: CritSuccess -> Success).
@@ -111,4 +111,4 @@ DegreeDist shiftDegrees(const DegreeDist& dist, int steps);
  * @param   [in] to - The degree that gets its probability.
  * @return  The new distribution.
  */
-DegreeDist remapDegree(const DegreeDist& dist, Degree from, Degree to);
+DegreeDist RemapDegree(const DegreeDist& dist, Degree from, Degree to);

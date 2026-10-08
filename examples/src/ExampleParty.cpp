@@ -7,13 +7,13 @@
 
 #include "Actions.h"
 
-Character exampleRanger()
+Character ExampleRanger()
 {
-    Character c;
-    c.name = "Ranger";
-    c.level = 5;
-    c.maxHP = 68;
-    c.skills = {{Skill::Intimidation, 9}, {Skill::Athletics, 9}};
+    Character ranger;
+    ranger.name = "Ranger";
+    ranger.level = 5;
+    ranger.maxHP = 68;
+    ranger.skills = {{Skill::Intimidation, 9}, {Skill::Athletics, 9}};
     Weapon bow;
     bow.name = "Composite Longbow";
     bow.attack = 14;
@@ -26,21 +26,21 @@ Character exampleRanger()
     bow.attackAttribute = Attribute::Dex;
     bow.strengthToDamage = false;
     bow.deadly = 10;
-    c.weapons = {bow};
-    c.features = {precisionEdge(1)};
-    return c;
+    ranger.weapons = {bow};
+    ranger.features = {PrecisionEdge(1)};
+    return ranger;
 }
 
-Character exampleBard()
+Character ExampleBard()
 {
-    Character c;
-    c.name = "Bard";
-    c.level = 5;
-    c.maxHP = 53;
-    c.spellAttack = 11;
-    c.spellDC = 21;
-    c.keyAttribute = Attribute::Cha;
-    c.skills = {{Skill::Intimidation, 13}, {Skill::Deception, 13}, {Skill::Performance, 13}};
+    Character bard;
+    bard.name = "Bard";
+    bard.level = 5;
+    bard.maxHP = 53;
+    bard.spellAttack = 11;
+    bard.spellDC = 21;
+    bard.keyAttribute = Attribute::Cha;
+    bard.skills = {{Skill::Intimidation, 13}, {Skill::Deception, 13}, {Skill::Performance, 13}};
     Weapon rapier;
     rapier.name = "Rapier";
     rapier.attack = 11;
@@ -51,17 +51,17 @@ Character exampleBard()
     rapier.finesse = true;
     rapier.attackAttribute = Attribute::Dex;
     rapier.deadly = 8;
-    c.weapons = {rapier};
-    return c;
+    bard.weapons = {rapier};
+    return bard;
 }
 
-Character exampleRogue()
+Character ExampleRogue()
 {
-    Character c;
-    c.name = "Rogue";
-    c.level = 5;
-    c.maxHP = 63;
-    c.skills = {{Skill::Deception, 12}, {Skill::Athletics, 7}, {Skill::Intimidation, 10}};
+    Character rogue;
+    rogue.name = "Rogue";
+    rogue.level = 5;
+    rogue.maxHP = 63;
+    rogue.skills = {{Skill::Deception, 12}, {Skill::Athletics, 7}, {Skill::Intimidation, 10}};
     Weapon rapier;
     rapier.name = "Rapier";
     rapier.attack = 14;
@@ -74,22 +74,22 @@ Character exampleRogue()
     rapier.attackAttribute = Attribute::Dex;
     rapier.strengthToDamage = false;
     rapier.deadly = 8;
-    c.weapons = {rapier};
-    c.features = {sneakAttack(2)};
-    return c;
+    rogue.weapons = {rapier};
+    rogue.features = {SneakAttack(2)};
+    return rogue;
 }
 
-Character exampleCleric()
+Character ExampleCleric()
 {
-    Character c;
-    c.name = "Cleric";
-    c.level = 5;
-    c.maxHP = 58;
-    c.hpMissing = 0;
-    c.spellAttack = 13;
-    c.spellDC = 23;
-    c.keyAttribute = Attribute::Wis;
-    c.skills = {{Skill::Medicine, 12}, {Skill::Religion, 12}};
+    Character cleric;
+    cleric.name = "Cleric";
+    cleric.level = 5;
+    cleric.maxHP = 58;
+    cleric.hpMissing = 0;
+    cleric.spellAttack = 13;
+    cleric.spellDC = 23;
+    cleric.keyAttribute = Attribute::Wis;
+    cleric.skills = {{Skill::Medicine, 12}, {Skill::Religion, 12}};
     Weapon mace;
     mace.name = "Mace";
     mace.attack = 10;
@@ -98,41 +98,41 @@ Character exampleCleric()
     mace.die = 6;
     mace.type = DamageType::Bludgeoning;
     mace.flat = 3;
-    c.weapons = {mace};
-    return c;
+    cleric.weapons = {mace};
+    return cleric;
 }
 
-Monster exampleBrute()
+Monster ExampleBrute()
 {
-    Monster m;
-    m.name = "Sample Brute (level 5)";
-    m.level = 5;
-    m.ac = 22;
-    m.fort = 14;
-    m.ref = 9;
-    m.will = 11;
-    m.perception = 11;
-    m.hp = 75;
-    return m;
+    Monster brute;
+    brute.name = "Sample Brute (level 5)";
+    brute.level = 5;
+    brute.ac = 22;
+    brute.fort = 14;
+    brute.ref = 9;
+    brute.will = 11;
+    brute.perception = 11;
+    brute.hp = 75;
+    return brute;
 }
 
-Character seis()
+Character Seis()
 {
-    Character c;
-    c.name = "Seis";
-    c.level = 15;
-    c.maxHP = 200;
-    Weapon w;
-    w.name = "Fatal Blade";
-    w.attack = 23;
-    w.potency = 2;
-    w.dice = 2;  // striking
-    w.die = 8;
-    w.type = DamageType::Slashing;
-    w.flat = 4;  // 2 weapon + 2 class
-    w.fatal = 12;
-    w.onHit = {dmg(2, 6, 0, DamageType::Fire)};
-    w.onCrit = {persistent(1, 10, 0, DamageType::Fire)};  // flaming rune
-    c.weapons = {w};
-    return c;
+    Character character;
+    character.name = "Seis";
+    character.level = 15;
+    character.maxHP = 200;
+    Weapon blade;
+    blade.name = "Fatal Blade";
+    blade.attack = 23;
+    blade.potency = 2;
+    blade.dice = 2;  // striking
+    blade.die = 8;
+    blade.type = DamageType::Slashing;
+    blade.flat = 4;  // 2 weapon + 2 class
+    blade.fatal = 12;
+    blade.onHit = {Damage(2, 6, 0, DamageType::Fire)};
+    blade.onCrit = {Persistent(1, 10, 0, DamageType::Fire)};  // flaming rune
+    character.weapons = {blade};
+    return character;
 }

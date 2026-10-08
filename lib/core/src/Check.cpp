@@ -7,9 +7,9 @@
 
 #include <algorithm>
 
-const char* toString(Degree d)
+const char* ToString(Degree degree)
 {
-    switch (d)
+    switch (degree)
     {
     case Degree::CritFail: return "crit fail";
     case Degree::Fail: return "fail";
@@ -19,14 +19,14 @@ const char* toString(Degree d)
     return "?";
 }
 
-Fortune combineFortune(bool hasFortune, bool hasMisfortune)
+Fortune CombineFortune(bool hasFortune, bool hasMisfortune)
 {
     if (hasFortune == hasMisfortune)
         return Fortune::None;
     return hasFortune ? Fortune::Fortune : Fortune::Misfortune;
 }
 
-double d20FaceProbability(int face, Fortune fortune)
+double D20FaceProbability(int face, Fortune fortune)
 {
     switch (fortune)
     {
@@ -37,7 +37,7 @@ double d20FaceProbability(int face, Fortune fortune)
     return 0.0;
 }
 
-Degree degreeFor(int naturalRoll, int modifier, int dc)
+Degree DegreeFor(int naturalRoll, int modifier, int dc)
 {
     int total = naturalRoll + modifier;
     int degree;
@@ -57,20 +57,20 @@ Degree degreeFor(int naturalRoll, int modifier, int dc)
     return static_cast<Degree>(degree);
 }
 
-DegreeDist resolveCheck(int modifier, int dc, Fortune fortune)
+DegreeDist ResolveCheck(int modifier, int dc, Fortune fortune)
 {
     DegreeDist dist{};
     for (int face = 1; face <= 20; ++face)
-        dist[static_cast<int>(degreeFor(face, modifier, dc))] += d20FaceProbability(face, fortune);
+        dist[static_cast<int>(DegreeFor(face, modifier, dc))] += D20FaceProbability(face, fortune);
     return dist;
 }
 
-double flatCheckPassChance(int dc)
+double FlatCheckPassChance(int dc)
 {
     return std::clamp((21.0 - dc) / 20.0, 0.0, 1.0);
 }
 
-DegreeDist shiftDegrees(const DegreeDist& dist, int steps)
+DegreeDist ShiftDegrees(const DegreeDist& dist, int steps)
 {
     DegreeDist out{};
     for (int i = 0; i < kDegrees; ++i)
@@ -78,7 +78,7 @@ DegreeDist shiftDegrees(const DegreeDist& dist, int steps)
     return out;
 }
 
-DegreeDist remapDegree(const DegreeDist& dist, Degree from, Degree to)
+DegreeDist RemapDegree(const DegreeDist& dist, Degree from, Degree to)
 {
     DegreeDist out = dist;
     out[static_cast<int>(to)] += out[static_cast<int>(from)];

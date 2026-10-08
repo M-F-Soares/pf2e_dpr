@@ -8,127 +8,128 @@
 #include <algorithm>
 #include <cstdlib>
 
-std::string modifierKey(const Modifier& m)
+std::string ModifierKey(const Modifier& modifier)
 {
-    return m.vsCreature < 0 ? m.source : m.source + "@" + std::to_string(m.vsCreature);
+    return modifier.vsCreatureIndex < 0 ? modifier.source
+                                        : modifier.source + "@" + std::to_string(modifier.vsCreatureIndex);
 }
 
-int BattleState::modifierTotal(int creature, const RollQuery& q, const std::vector<Modifier>& extra,
+int BattleState::ModifierTotal(int creatureIndex, const RollQuery& query, const std::vector<Modifier>& extra,
                                std::vector<std::string>* used) const
 {
-    const CreatureState& c = creatures[creature];
+    const CreatureState& state = creatures[creatureIndex];
     Stacker stack;
-    for (const auto& m : extra)
-        if (appliesTo(m, q))
-            stack.add(m);
-    for (const auto& [kind, cond] : c.conditions)
-        for (const auto& m : conditionModifiers(kind, cond.value))
-            if (appliesTo(m, q))
-                stack.add(m);
-    for (const auto& [key, active] : c.modifiers)
+    for (const auto& modifier : extra)
+        if (AppliesTo(modifier, query))
+            stack.Add(modifier);
+    for (const auto& [kind, condition] : state.conditions)
+        for (const auto& modifier : ConditionModifiers(kind, condition.value))
+            if (AppliesTo(modifier, query))
+                stack.Add(modifier);
+    for (const auto& [key, active] : state.modifiers)
     {
-        if (!appliesTo(active.mod, q))
+        if (!AppliesTo(active.mod, query))
             continue;
-        stack.add(active.mod);
+        stack.Add(active.mod);
         if (used && active.uses > 0)
             used->push_back(key);
     }
-    return stack.total();
+    return stack.Total();
 }
 
-bool BattleState::isOffGuardTo(int creature, int attacker, Tags attackTags) const
+bool BattleState::IsOffGuardTo(int creatureIndex, int attackerIndex, Tags attackTags) const
 {
-    RollQuery q{Tag::AC | Tag::DC | (attackTags & (Tag::Melee | Tag::Ranged)), attacker};
-    const CreatureState& c = creatures[creature];
-    for (const auto& [kind, cond] : c.conditions)
-        for (const auto& m : conditionModifiers(kind, cond.value))
-            if (m.grantsOffGuard && appliesTo(m, q))
+    RollQuery query{Tag::AC | Tag::DC | (attackTags & (Tag::Melee | Tag::Ranged)), attackerIndex};
+    const CreatureState& state = creatures[creatureIndex];
+    for (const auto& [kind, condition] : state.conditions)
+        for (const auto& modifier : ConditionModifiers(kind, condition.value))
+            if (modifier.grantsOffGuard && AppliesTo(modifier, query))
                 return true;
-    for (const auto& [key, active] : c.modifiers)
-        if (active.mod.grantsOffGuard && appliesTo(active.mod, q))
+    for (const auto& [key, active] : state.modifiers)
+        if (active.mod.grantsOffGuard && AppliesTo(active.mod, query))
             return true;
     return false;
 }
 
-int BattleState::conditionValue(int creature, ConditionKind kind) const
+int BattleState::ConditionValue(int creatureIndex, ConditionKind kind) const
 {
-    const auto& conds = creatures[creature].conditions;
-    auto it = conds.find(kind);
-    return it == conds.end() ? 0 : it->second.value;
+    const auto& conditions = creatures[creatureIndex].conditions;
+    auto it = conditions.find(kind);
+    return it == conditions.end() ? 0 : it->second.value;
 }
 
-int BattleState::counter(int creature, const std::string& name) const
+int BattleState::Counter(int creatureIndex, const std::string& counterName) const
 {
-    const auto& counters = creatures[creature].counters;
-    auto it = counters.find(name);
+    const auto& counters = creatures[creatureIndex].counters;
+    auto it = counters.find(counterName);
     return it == counters.end() ? 0 : it->second;
 }
 
-int BattleState::actionsPerTurn(int creature) const
+int BattleState::ActionsPerTurn(int creatureIndex) const
 {
     int actions = 3;
-    for (const auto& [kind, cond] : creatures[creature].conditions)
-        actions += conditionActionDelta(kind, cond.value);
+    for (const auto& [kind, condition] : creatures[creatureIndex].conditions)
+        actions += ConditionActionDelta(kind, condition.value);
     return std::max(actions, 0);
 }
 
-void BattleState::addCondition(int creature, ConditionKind kind, int value, Duration until)
+void BattleState::AddCondition(int creatureIndex, ConditionKind kind, int value, Duration until)
 {
-    auto& conds = creatures[creature].conditions;
-    auto it = conds.find(kind);
-    if (it == conds.end() || it->second.value < value)
-        conds[kind] = ActiveCondition{value, until};
+    auto& conditions = creatures[creatureIndex].conditions;
+    auto it = conditions.find(kind);
+    if (it == conditions.end() || it->second.value < value)
+        conditions[kind] = ActiveCondition{value, until};
 }
 
-void BattleState::addModifier(int creature, const ActiveModifier& m)
+void BattleState::AddModifier(int creatureIndex, const ActiveModifier& modifier)
 {
-    auto& mods = creatures[creature].modifiers;
-    std::string key = modifierKey(m.mod);
-    auto it = mods.find(key);
-    if (it == mods.end() || std::abs(it->second.mod.value) <= std::abs(m.mod.value))
-        mods[key] = m;
+    auto& modifiers = creatures[creatureIndex].modifiers;
+    std::string key = ModifierKey(modifier.mod);
+    auto it = modifiers.find(key);
+    if (it == modifiers.end() || std::abs(it->second.mod.value) <= std::abs(modifier.mod.value))
+        modifiers[key] = modifier;
 }
 
-void BattleState::addPersistent(int creature, const DamageComponent& c)
+void BattleState::AddPersistent(int creatureIndex, const DamageComponent& component)
 {
-    auto& p = creatures[creature].persistent;
-    auto it = p.find(c.type);
-    if (it == p.end() || it->second.mean() < c.mean())
-        p[c.type] = c;
+    auto& persistentByType = creatures[creatureIndex].persistent;
+    auto it = persistentByType.find(component.type);
+    if (it == persistentByType.end() || it->second.Mean() < component.Mean())
+        persistentByType[component.type] = component;
 }
 
-void BattleState::consumeUses(int creature, const std::vector<std::string>& sources)
+void BattleState::ConsumeUses(int creatureIndex, const std::vector<std::string>& sources)
 {
-    auto& mods = creatures[creature].modifiers;
+    auto& modifiers = creatures[creatureIndex].modifiers;
     for (const auto& key : sources)
     {
-        auto it = mods.find(key);
-        if (it != mods.end() && it->second.uses > 0 && --it->second.uses == 0)
-            mods.erase(it);
+        auto it = modifiers.find(key);
+        if (it != modifiers.end() && it->second.uses > 0 && --it->second.uses == 0)
+            modifiers.erase(it);
     }
 }
 
-void BattleState::startTurn(int creature)
+void BattleState::StartTurn(int creatureIndex)
 {
-    CreatureState& c = creatures[creature];
-    c.attacksThisTurn = 0;
-    c.actionsUsed = 0;
-    c.reactionUsed = false;
-    expire(Expiry::StartOfTurn, creature);
+    CreatureState& state = creatures[creatureIndex];
+    state.attacksThisTurn = 0;
+    state.actionsUsed = 0;
+    state.reactionUsed = false;
+    Expire(Expiry::StartOfTurn, creatureIndex);
 }
 
-void BattleState::endTurn(int creature)
+void BattleState::EndTurn(int creatureIndex)
 {
-    creatures[creature].attacksThisTurn = 0;
-    expire(Expiry::EndOfTurn, creature);
+    creatures[creatureIndex].attacksThisTurn = 0;
+    Expire(Expiry::EndOfTurn, creatureIndex);
 }
 
-void BattleState::expire(Expiry when, int creature)
+void BattleState::Expire(Expiry when, int creatureIndex)
 {
-    Duration d{when, creature};
-    for (auto& c : creatures)
+    Duration duration{when, creatureIndex};
+    for (auto& state : creatures)
     {
-        std::erase_if(c.conditions, [&](const auto& kv) { return kv.second.until == d; });
-        std::erase_if(c.modifiers, [&](const auto& kv) { return kv.second.until == d; });
+        std::erase_if(state.conditions, [&](const auto& entry) { return entry.second.until == duration; });
+        std::erase_if(state.modifiers, [&](const auto& entry) { return entry.second.until == duration; });
     }
 }

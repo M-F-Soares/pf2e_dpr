@@ -8,9 +8,9 @@
 #include <algorithm>
 #include <map>
 
-const char* toString(DamageType t)
+const char* ToString(DamageType type)
 {
-    switch (t)
+    switch (type)
     {
     case DamageType::Bludgeoning: return "bludgeoning";
     case DamageType::Piercing: return "piercing";
@@ -33,22 +33,22 @@ const char* toString(DamageType t)
     return "?";
 }
 
-bool isPhysical(DamageType t)
+bool IsPhysical(DamageType type)
 {
-    return t == DamageType::Bludgeoning || t == DamageType::Piercing || t == DamageType::Slashing;
+    return type == DamageType::Bludgeoning || type == DamageType::Piercing || type == DamageType::Slashing;
 }
 
-DamageComponent dmg(int count, int die, int flat, DamageType type)
+DamageComponent Damage(int count, int die, int flat, DamageType type)
 {
     return DamageComponent{count, die, flat, type};
 }
 
-DamageComponent precision(int count, int die, DamageType type)
+DamageComponent Precision(int count, int die, DamageType type)
 {
     return DamageComponent{count, die, 0, type, DamageCategory::Precision};
 }
 
-DamageComponent persistent(int count, int die, int flat, DamageType type)
+DamageComponent Persistent(int count, int die, int flat, DamageType type)
 {
     return DamageComponent{count, die, flat, type, DamageCategory::Persistent};
 }
@@ -61,9 +61,9 @@ namespace
  * @param   [in] actual - The type of the damage.
  * @return  True if @p entry is @p actual, All, or Physical for a physical type.
  */
-bool covers(DamageType entry, DamageType actual)
+bool Covers(DamageType entry, DamageType actual)
 {
-    return entry == actual || entry == DamageType::All || (entry == DamageType::Physical && isPhysical(actual));
+    return entry == actual || entry == DamageType::All || (entry == DamageType::Physical && IsPhysical(actual));
 }
 
 /**
@@ -74,29 +74,29 @@ bool covers(DamageType entry, DamageType actual)
  *          skipped.
  * @return  The highest value, or 0 if none applies.
  */
-int highestApplicable(const std::vector<Resistance>& list, DamageType type, const std::set<std::string>& attackTraits)
+int HighestApplicable(const std::vector<Resistance>& list, DamageType type, const std::set<std::string>& attackTraits)
 {
     int best = 0;
-    for (const auto& r : list)
+    for (const auto& resistance : list)
     {
-        if (!covers(r.type, type))
+        if (!Covers(resistance.type, type))
             continue;
-        bool bypassed = std::any_of(r.except.begin(), r.except.end(),
-                                    [&](const std::string& e) { return attackTraits.count(e) > 0; });
+        bool bypassed = std::any_of(resistance.except.begin(), resistance.except.end(),
+                                    [&](const std::string& trait) { return attackTraits.count(trait) > 0; });
         if (!bypassed)
-            best = std::max(best, r.value);
+            best = std::max(best, resistance.value);
     }
     return best;
 }
 } // namespace
 
-double expectedDamage(const std::vector<DamageComponent>& components, DamageScale scale,
+double ExpectedDamage(const std::vector<DamageComponent>& components, DamageScale scale,
                       const DamageDefenses& defenses, const std::set<std::string>& attackTraits)
 {
-    return expectedDamage(std::vector<DamageRoll>{DamageRoll{components, scale}}, defenses, attackTraits);
+    return ExpectedDamage(std::vector<DamageRoll>{DamageRoll{components, scale}}, defenses, attackTraits);
 }
 
-double expectedDamage(const std::vector<DamageRoll>& rolls, const DamageDefenses& defenses,
+double ExpectedDamage(const std::vector<DamageRoll>& rolls, const DamageDefenses& defenses,
                       const std::set<std::string>& attackTraits)
 {
     // Sum each roll per damage type (insertion order kept so the first type is the "main" one),
@@ -109,43 +109,44 @@ double expectedDamage(const std::vector<DamageRoll>& rolls, const DamageDefenses
         if (roll.scale == DamageScale::None)
             continue;
         std::map<DamageType, Dist> rollByType;
-        for (const auto& c : roll.components)
+        for (const auto& component : roll.components)
         {
-            if (c.category == DamageCategory::Persistent)
+            if (component.category == DamageCategory::Persistent)
                 continue;
-            if (c.category == DamageCategory::Precision && defenses.immuneTo("precision"))
+            if (component.category == DamageCategory::Precision && defenses.ImmuneTo("precision"))
                 continue;
-            Dist d = c.dist();
-            if (roll.scale == DamageScale::Double && c.doublesOnCrit)
-                d = d.doubled();
-            if (std::find(order.begin(), order.end(), c.type) == order.end())
-                order.push_back(c.type);
-            rollByType[c.type] += d;
-            ignoredResistance[c.type] = std::max(ignoredResistance[c.type], c.ignoredResistance);
+            Dist amount = component.Distribution();
+            if (roll.scale == DamageScale::Double && component.doublesOnCrit)
+                amount = amount.Doubled();
+            if (std::find(order.begin(), order.end(), component.type) == order.end())
+                order.push_back(component.type);
+            rollByType[component.type] += amount;
+            ignoredResistance[component.type] =
+                std::max(ignoredResistance[component.type], component.ignoredResistance);
         }
-        for (auto& [type, d] : rollByType)
-            byType[type] += roll.scale == DamageScale::Half ? d.halved() : d;
+        for (auto& [type, amount] : rollByType)
+            byType[type] += roll.scale == DamageScale::Half ? amount.Halved() : amount;
     }
     if (order.empty())
         return 0.0;
 
     // Penalties never reduce a damaging effect below 1 damage.
-    byType[order.front()] = byType[order.front()].atLeast(1);
+    byType[order.front()] = byType[order.front()].AtLeast(1);
 
     double total = 0.0;
     for (DamageType type : order)
     {
-        if (defenses.immuneTo(toString(type)))
+        if (defenses.ImmuneTo(ToString(type)))
             continue;
-        int weakness = highestApplicable(defenses.weaknesses, type, {});
+        int weakness = HighestApplicable(defenses.weaknesses, type, {});
         // Ignored resistance lowers the resistance for this type's whole combined amount, even the
         // part from another roll (Overwhelming Spellstrike "generous" ruling, see README "Rulings").
         int resistance =
-            std::max(0, highestApplicable(defenses.resistances, type, attackTraits) - ignoredResistance[type]);
-        total += byType[type].expected([&](int x) {
-            if (x <= 0)
+            std::max(0, HighestApplicable(defenses.resistances, type, attackTraits) - ignoredResistance[type]);
+        total += byType[type].Expected([&](int amount) {
+            if (amount <= 0)
                 return 0.0;
-            return static_cast<double>(std::max(0, x + weakness - resistance));
+            return static_cast<double>(std::max(0, amount + weakness - resistance));
         });
     }
     return total;

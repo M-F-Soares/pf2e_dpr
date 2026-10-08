@@ -10,10 +10,10 @@
 
 namespace
 {
-constexpr int CF = static_cast<int>(Degree::CritFail);    /**< Action::outcomes index of a critical failure. */
-constexpr int F = static_cast<int>(Degree::Fail);         /**< Action::outcomes index of a failure. */
-constexpr int S = static_cast<int>(Degree::Success);      /**< Action::outcomes index of a success. */
-constexpr int CS = static_cast<int>(Degree::CritSuccess); /**< Action::outcomes index of a critical success. */
+constexpr int kCritFail = static_cast<int>(Degree::CritFail);        /**< Action::outcomes index: critical failure. */
+constexpr int kFail = static_cast<int>(Degree::Fail);                /**< Action::outcomes index: failure. */
+constexpr int kSuccess = static_cast<int>(Degree::Success);          /**< Action::outcomes index: success. */
+constexpr int kCritSuccess = static_cast<int>(Degree::CritSuccess);  /**< Action::outcomes index: critical success. */
 
 /**
  * @brief   A new, empty action.
@@ -21,49 +21,49 @@ constexpr int CS = static_cast<int>(Degree::CritSuccess); /**< Action::outcomes 
  * @param   [in] cost - Actions spent.
  * @return  The action, still mutable.
  */
-std::shared_ptr<Action> make(std::string name, int cost)
+std::shared_ptr<Action> Make(std::string name, int cost)
 {
-    auto a = std::make_shared<Action>();
-    a->name = std::move(name);
-    a->cost = cost;
-    return a;
+    auto action = std::make_shared<Action>();
+    action->name = std::move(name);
+    action->cost = cost;
+    return action;
 }
 
 /**
  * @brief   Makes an action a skill check against one of the enemy's DCs.
- * @param   [in, out] a - The action.
- * @param   [in] c - The character rolling.
+ * @param   [in, out] action - The action.
+ * @param   [in] character - The character rolling.
  * @param   [in] skill - The skill.
- * @param   [in] vs - The enemy defense used as the DC.
- * @throws  std::runtime_error if @p c has no modifier for @p skill.
+ * @param   [in] defense - The enemy defense used as the DC.
+ * @throws  std::runtime_error if @p character has no modifier for @p skill.
  */
-void skillCheck(Action& a, const Character& c, Skill skill, Defense vs)
+void SkillCheck(Action& action, const Character& character, Skill skill, Defense defense)
 {
-    a.check.kind = CheckKind::Attack;
-    a.check.modifier = c.skill(skill);
-    a.check.tags = Tag::Skill | Tag::Check | attributeTag(skillAttribute(skill));
-    a.check.defense = vs;
+    action.check.kind = CheckKind::Attack;
+    action.check.modifier = character.SkillModifier(skill);
+    action.check.tags = Tag::Skill | Tag::Check | AttributeTag(SkillAttribute(skill));
+    action.check.defense = defense;
 }
 
 /**
  * @brief   The damage types whose resistance Overwhelming Spellstrike ignores.
- * @param   [in] t - The damage type.
+ * @param   [in] type - The damage type.
  * @return  True for acid, cold, electricity, fire and sonic.
  */
-bool overwhelmingAffects(DamageType t)
+bool OverwhelmingAffects(DamageType type)
 {
-    return t == DamageType::Acid || t == DamageType::Cold || t == DamageType::Electricity ||
-           t == DamageType::Fire || t == DamageType::Sonic;
+    return type == DamageType::Acid || type == DamageType::Cold || type == DamageType::Electricity ||
+           type == DamageType::Fire || type == DamageType::Sonic;
 }
 
 /**
  * @brief   Tags of a character's spell DC.
- * @param   [in] c - The caster.
+ * @param   [in] caster - The caster.
  * @return  DC, Spell and the caster's key attribute.
  */
-Tags spellDCTags(const Character& c)
+Tags SpellDCTags(const Character& caster)
 {
-    return Tag::DC | Tag::Spell | attributeTag(c.keyAttribute);
+    return Tag::DC | Tag::Spell | AttributeTag(caster.keyAttribute);
 }
 
 /**
@@ -71,174 +71,178 @@ Tags spellDCTags(const Character& c)
  * @param   [in] to - Who gets it.
  * @param   [in] source - Name of the effect.
  * @param   [in] value - The bonus.
- * @param   [in] s - The rolls it applies to.
+ * @param   [in] selector - The rolls it applies to.
  * @return  The modifier to apply.
  */
-ApplyModifier allyBonus(Who to, const std::string& source, int value, Selector s)
+ApplyModifier AllyBonus(Who to, const std::string& source, int value, Selector selector)
 {
-    return ApplyModifier{to, Modifier{source, BonusType::Status, value, std::move(s)}, forTheRound()};
+    return ApplyModifier{to, Modifier{source, BonusType::Status, value, std::move(selector)}, ForTheRound()};
 }
 } // namespace
 
-ActionPtr strike(const Character& c, const std::string& weaponName, StrikeOptions opts)
+ActionPtr Strike(const Character& character, const std::string& weaponName, StrikeOptions opts)
 {
-    const Weapon& w = c.weapon(weaponName);
-    auto a = make(opts.name.empty() ? "Strike (" + w.name + ")" : opts.name, opts.cost);
-    a->reaction = opts.reaction;
+    const Weapon& weapon = character.GetWeapon(weaponName);
+    auto action = Make(opts.name.empty() ? "Strike (" + weapon.name + ")" : opts.name, opts.cost);
+    action->reaction = opts.reaction;
 
-    Tags range = w.ranged ? Tag::Ranged : Tag::Melee;
-    CheckSpec& k = a->check;
-    k.kind = CheckKind::Attack;
-    k.modifier = w.attack;
-    k.itemBonus = w.potency;
-    k.tags = Tag::AttackRoll | Tag::Check | range | attributeTag(w.attackAttribute);
-    k.defense = Defense::AC;
-    k.attackTrait = true;
-    k.agile = w.agile;
-    k.untypedPenalty = -2 * (opts.rangeIncrement - 1);
-    k.fortune = opts.fortune;
+    Tags range = weapon.ranged ? Tag::Ranged : Tag::Melee;
+    CheckSpec& check = action->check;
+    check.kind = CheckKind::Attack;
+    check.modifier = weapon.attack;
+    check.itemBonus = weapon.potency;
+    check.tags = Tag::AttackRoll | Tag::Check | range | AttributeTag(weapon.attackAttribute);
+    check.defense = Defense::AC;
+    check.attackTrait = true;
+    check.agile = weapon.agile;
+    check.untypedPenalty = -2 * (opts.rangeIncrement - 1);
+    check.fortune = opts.fortune;
 
-    a->damage = {dmg(w.dice, w.die, w.flat, w.type)};
-    a->damage.insert(a->damage.end(), w.onHit.begin(), w.onHit.end());
-    a->damage.insert(a->damage.end(), opts.extraOnHit.begin(), opts.extraOnHit.end());
+    action->damage = {Damage(weapon.dice, weapon.die, weapon.flat, weapon.type)};
+    action->damage.insert(action->damage.end(), weapon.onHit.begin(), weapon.onHit.end());
+    action->damage.insert(action->damage.end(), opts.extraOnHit.begin(), opts.extraOnHit.end());
 
     // Fatal: weapon dice become the fatal size on a crit, plus one extra (undoubled) die.
-    a->critDamage = a->damage;
-    if (w.fatal)
+    action->critDamage = action->damage;
+    if (weapon.fatal)
     {
-        a->critDamage.front().die = w.fatal;
-        a->critDamage.push_back(DamageComponent{1, w.fatal, 0, w.type, DamageCategory::Normal, false});
+        action->critDamage.front().die = weapon.fatal;
+        action->critDamage.push_back(DamageComponent{1, weapon.fatal, 0, weapon.type, DamageCategory::Normal, false});
     }
     // Deadly: 1 extra die, 2 with greater striking, 3 with major striking (not doubled).
-    if (w.deadly)
-        a->critDamage.push_back(DamageComponent{std::max(1, w.dice - 1), w.deadly, 0, w.type,
-                                                DamageCategory::Normal, false});
-    for (DamageComponent rider : w.onCrit)
+    if (weapon.deadly)
+        action->critDamage.push_back(DamageComponent{std::max(1, weapon.dice - 1), weapon.deadly, 0, weapon.type,
+                                                     DamageCategory::Normal, false});
+    for (DamageComponent rider : weapon.onCrit)
     {
         rider.doublesOnCrit = false;
-        a->critDamage.push_back(rider);
+        action->critDamage.push_back(rider);
     }
 
-    a->damageTags = Tag::Damage | range | (w.strengthToDamage ? Tags{Tag::Str} : Tags{0});
-    a->weapon = w;
-    a->traits = {"attack"};
-    a->outcomes[S].damage = DamageScale::Normal;
-    a->outcomes[CS].damage = DamageScale::Double;
-    return a;
+    action->damageTags = Tag::Damage | range | (weapon.strengthToDamage ? Tags{Tag::Str} : Tags{0});
+    action->weapon = weapon;
+    action->traits = {"attack"};
+    action->outcomes[kSuccess].damage = DamageScale::Normal;
+    action->outcomes[kCritSuccess].damage = DamageScale::Double;
+    return action;
 }
 
-ActionPtr demoralize(const Character& c)
+ActionPtr Demoralize(const Character& character)
 {
-    auto a = make("Demoralize", 1);
-    skillCheck(*a, c, Skill::Intimidation, Defense::Will);
-    a->traits = {"auditory", "concentrate", "emotion", "fear", "mental"};
-    a->outcomes[S].conditions = {{ConditionKind::Frightened, 1}};
-    a->outcomes[CS].conditions = {{ConditionKind::Frightened, 2}};
+    auto action = Make("Demoralize", 1);
+    SkillCheck(*action, character, Skill::Intimidation, Defense::Will);
+    action->traits = {"auditory", "concentrate", "emotion", "fear", "mental"};
+    action->outcomes[kSuccess].conditions = {{ConditionKind::Frightened, 1}};
+    action->outcomes[kCritSuccess].conditions = {{ConditionKind::Frightened, 2}};
     // The target is then temporarily immune to this character's Demoralize.
-    std::string immunity = "demoralize-immune:" + c.name;
-    for (auto& o : a->outcomes)
-        o.counters = {{Who::Enemy, immunity}};
-    a->usable = [immunity](const BattleState& s, int, int) { return s.counter(kEnemy, immunity) == 0; };
-    return a;
+    std::string immunity = "demoralize-immune:" + character.name;
+    for (auto& outcome : action->outcomes)
+        outcome.counters = {{Who::Enemy, immunity}};
+    action->usable = [immunity](const BattleState& state, int, int) {
+        return state.Counter(kEnemyIndex, immunity) == 0;
+    };
+    return action;
 }
 
-ActionPtr feint(const Character& c)
+ActionPtr Feint(const Character& character)
 {
-    auto a = make("Feint", 1);
-    skillCheck(*a, c, Skill::Deception, Defense::Perception);
-    a->traits = {"mental"};
-    Modifier offGuard{"feint", BonusType::Circumstance, -2, select({Tag::AC | Tag::Melee}), -1, true};
+    auto action = Make("Feint", 1);
+    SkillCheck(*action, character, Skill::Deception, Defense::Perception);
+    action->traits = {"mental"};
+    Modifier offGuard{"feint", BonusType::Circumstance, -2, Select({Tag::AC | Tag::Melee}), -1, true};
     // Success: off-guard against your next melee attack this turn.
-    a->outcomes[S].modifiers = {ApplyModifier{Who::Enemy, offGuard, untilEndOfActorTurn(), 1, true}};
+    action->outcomes[kSuccess].modifiers = {ApplyModifier{Who::Enemy, offGuard, UntilEndOfActorTurn(), 1, true}};
     // Critical success: off-guard against your melee attacks until the end of your next turn.
-    a->outcomes[CS].modifiers = {ApplyModifier{Who::Enemy, offGuard, forTheRound(), -1, true}};
-    return a;
+    action->outcomes[kCritSuccess].modifiers = {ApplyModifier{Who::Enemy, offGuard, ForTheRound(), -1, true}};
+    return action;
 }
 
-ActionPtr trip(const Character& c)
+ActionPtr Trip(const Character& character)
 {
-    auto a = make("Trip", 1);
-    skillCheck(*a, c, Skill::Athletics, Defense::Ref);
-    a->check.attackTrait = true;
-    a->traits = {"attack"};
-    a->damage = {dmg(1, 6, 0, DamageType::Bludgeoning)};
-    a->outcomes[S].conditions = {{ConditionKind::Prone, 1}};
-    a->outcomes[CS].conditions = {{ConditionKind::Prone, 1}};
-    a->outcomes[CS].damage = DamageScale::Normal;
-    a->outcomes[CF].conditions = {{ConditionKind::Prone, 1, forTheRound(), Who::Actor}};
-    return a;
+    auto action = Make("Trip", 1);
+    SkillCheck(*action, character, Skill::Athletics, Defense::Ref);
+    action->check.attackTrait = true;
+    action->traits = {"attack"};
+    action->damage = {Damage(1, 6, 0, DamageType::Bludgeoning)};
+    action->outcomes[kSuccess].conditions = {{ConditionKind::Prone, 1}};
+    action->outcomes[kCritSuccess].conditions = {{ConditionKind::Prone, 1}};
+    action->outcomes[kCritSuccess].damage = DamageScale::Normal;
+    action->outcomes[kCritFail].conditions = {{ConditionKind::Prone, 1, ForTheRound(), Who::Actor}};
+    return action;
 }
 
-ActionPtr grapple(const Character& c)
+ActionPtr Grapple(const Character& character)
 {
-    auto a = make("Grapple", 1);
-    skillCheck(*a, c, Skill::Athletics, Defense::Fort);
-    a->check.attackTrait = true;
-    a->traits = {"attack"};
-    a->outcomes[S].conditions = {{ConditionKind::Grabbed, 1}};
-    a->outcomes[CS].conditions = {{ConditionKind::Restrained, 1}};
-    return a;
+    auto action = Make("Grapple", 1);
+    SkillCheck(*action, character, Skill::Athletics, Defense::Fort);
+    action->check.attackTrait = true;
+    action->traits = {"attack"};
+    action->outcomes[kSuccess].conditions = {{ConditionKind::Grabbed, 1}};
+    action->outcomes[kCritSuccess].conditions = {{ConditionKind::Restrained, 1}};
+    return action;
 }
 
-ActionPtr aid(const Character&, const Character& ally, int modifier, int critBonus, Selector aided)
+ActionPtr Aid(const Character&, const Character& ally, int modifier, int critBonus, Selector aided)
 {
     // Simplified: the preparation action and the reaction happen on the aider's turn,
     // and the bonus applies to the ally's next matching check.
-    auto a = make("Aid " + ally.name, 1);
-    a->allyTarget = ally.name;
-    a->check.kind = CheckKind::FixedDC;
-    a->check.modifier = modifier;
-    a->check.tags = Tag::Check;
-    a->check.fixedDC = 15;
-    a->check.targeted = false;
+    auto action = Make("Aid " + ally.name, 1);
+    action->allyName = ally.name;
+    action->check.kind = CheckKind::FixedDC;
+    action->check.modifier = modifier;
+    action->check.tags = Tag::Check;
+    action->check.fixedDC = 15;
+    action->check.targeted = false;
     auto bonus = [&](int value) {
         return std::vector<ApplyModifier>{
-            ApplyModifier{Who::Ally, Modifier{"aid", BonusType::Circumstance, value, aided}, forTheRound(), 1}};
+            ApplyModifier{Who::Ally, Modifier{"aid", BonusType::Circumstance, value, aided}, ForTheRound(), 1}};
     };
-    a->outcomes[CS].modifiers = bonus(critBonus);
-    a->outcomes[S].modifiers = bonus(1);
-    a->outcomes[CF].modifiers = bonus(-1);
-    for (auto& o : a->outcomes)
-        o.custom = [](EffectCtx& ctx) { ctx.state[ctx.actor].reactionUsed = true; };
-    return a;
+    action->outcomes[kCritSuccess].modifiers = bonus(critBonus);
+    action->outcomes[kSuccess].modifiers = bonus(1);
+    action->outcomes[kCritFail].modifiers = bonus(-1);
+    for (auto& outcome : action->outcomes)
+        outcome.custom = [](EffectCtx& ctx) { ctx.state[ctx.actorIndex].reactionUsed = true; };
+    return action;
 }
 
-ActionPtr battleMedicine(const Character& medic, const Character& patient, int dc, int bonusHealing)
+ActionPtr BattleMedicine(const Character& medic, const Character& patient, int dc, int bonusHealing)
 {
-    auto a = make("Battle Medicine -> " + patient.name, 1);
-    a->allyTarget = patient.name;
-    a->check.kind = CheckKind::FixedDC;
-    a->check.modifier = medic.skill(Skill::Medicine);
-    a->check.tags = Tag::Skill | Tag::Check | Tag::Wis;
-    a->check.fixedDC = dc;
-    a->check.targeted = false;
-    a->outcomes[S].heal = HealSpec{2, 8, bonusHealing};
-    a->outcomes[CS].heal = HealSpec{4, 8, bonusHealing};
-    for (auto& o : a->outcomes)
-        o.counters = {{Who::Ally, "immune:battle-medicine"}};
-    a->usable = [](const BattleState& s, int, int ally) { return s.counter(ally, "immune:battle-medicine") == 0; };
-    return a;
+    auto action = Make("Battle Medicine -> " + patient.name, 1);
+    action->allyName = patient.name;
+    action->check.kind = CheckKind::FixedDC;
+    action->check.modifier = medic.SkillModifier(Skill::Medicine);
+    action->check.tags = Tag::Skill | Tag::Check | Tag::Wis;
+    action->check.fixedDC = dc;
+    action->check.targeted = false;
+    action->outcomes[kSuccess].heal = HealSpec{2, 8, bonusHealing};
+    action->outcomes[kCritSuccess].heal = HealSpec{4, 8, bonusHealing};
+    for (auto& outcome : action->outcomes)
+        outcome.counters = {{Who::Ally, "immune:battle-medicine"}};
+    action->usable = [](const BattleState& state, int, int allyIndex) {
+        return state.Counter(allyIndex, "immune:battle-medicine") == 0;
+    };
+    return action;
 }
 
-ActionPtr huntPrey(const Character&)
+ActionPtr HuntPrey(const Character&)
 {
-    auto a = make("Hunt Prey", 1);
-    a->outcomes[S].counters = {{Who::Actor, "prey"}};
-    return a;
+    auto action = Make("Hunt Prey", 1);
+    action->outcomes[kSuccess].counters = {{Who::Actor, "prey"}};
+    return action;
 }
 
-ActionPtr strikeHard(const Character&, const Character& ally, const std::string& allyWeapon)
+ActionPtr StrikeHard(const Character&, const Character& ally, const std::string& allyWeaponName)
 {
-    auto a = make("Strike Hard! -> " + ally.name, 2);
-    a->allyTarget = ally.name;
+    auto action = Make("Strike Hard! -> " + ally.name, 2);
+    action->allyName = ally.name;
     StrikeOptions opts;
-    opts.name = "Strike (" + allyWeapon + ", Strike Hard!)";
+    opts.name = "Strike (" + allyWeaponName + ", Strike Hard!)";
     opts.reaction = true;
-    a->outcomes[S].grants = {Grant{ally.name, strike(ally, allyWeapon, opts)}};
-    return a;
+    action->outcomes[kSuccess].grants = {Grant{ally.name, Strike(ally, allyWeaponName, opts)}};
+    return action;
 }
 
-ActionPtr spellstrike(const Character& magus, const std::string& weapon, const ActionPtr& spell)
+ActionPtr Spellstrike(const Character& magus, const std::string& weaponName, const ActionPtr& spell)
 {
     bool attackSpell = spell && spell->check.kind == CheckKind::Attack;
     bool saveSpell = spell && spell->check.kind == CheckKind::Save;
@@ -250,151 +254,152 @@ ActionPtr spellstrike(const Character& magus, const std::string& weapon, const A
     StrikeOptions opts;
     opts.name = "Spellstrike (" + spell->name + ")";
     opts.cost = 2;
-    auto a = std::make_shared<Action>(*strike(magus, weapon, opts));
-    a->check.attacks = 2;
-    a->spentFlag = "spellstrike-spent";
+    auto action = std::make_shared<Action>(*Strike(magus, weaponName, opts));
+    action->check.attacks = 2;
+    action->spentFlag = "spellstrike-spent";
 
     // The spell goes where the Strike goes, so it has no concealment flat check of its own.
     auto coupled = std::make_shared<Action>(*spell);
     coupled->check.targeted = false;
-    a->coupled = CoupledEffect{coupled, attackSpell ? Coupling::SameRoll : Coupling::OwnRoll};
-    return a;
+    action->coupled = CoupledEffect{coupled, attackSpell ? Coupling::SameRoll : Coupling::OwnRoll};
+    return action;
 }
 
-ActionPtr overwhelmingSpellstrike(const Character& magus, const std::string& weapon, const ActionPtr& spell)
+ActionPtr OverwhelmingSpellstrike(const Character& magus, const std::string& weaponName, const ActionPtr& spell)
 {
     if (!spell)
         throw std::invalid_argument("Spellstrike needs a spell with a spell attack roll or a saving throw");
     // Only the spell's damage ignores resistance; immunities are unaffected.
     auto piercing = std::make_shared<Action>(*spell);
     for (auto* list : {&piercing->damage, &piercing->critDamage})
-        for (DamageComponent& c : *list)
-            if (overwhelmingAffects(c.type))
-                c.ignoredResistance = magus.level;
+        for (DamageComponent& component : *list)
+            if (OverwhelmingAffects(component.type))
+                component.ignoredResistance = magus.level;
 
-    auto a = std::make_shared<Action>(*spellstrike(magus, weapon, piercing));
-    a->name = "Overwhelming Spellstrike (" + spell->name + ")";
-    return a;
+    auto action = std::make_shared<Action>(*Spellstrike(magus, weaponName, piercing));
+    action->name = "Overwhelming Spellstrike (" + spell->name + ")";
+    return action;
 }
 
-ActionPtr rechargeSpellstrike(const Character&)
+ActionPtr RechargeSpellstrike(const Character&)
 {
-    auto a = make("Recharge Spellstrike", 1);
-    a->outcomes[S].counters = {{Who::Actor, "spellstrike-spent", 0}};
-    return a;
+    auto action = Make("Recharge Spellstrike", 1);
+    action->outcomes[kSuccess].counters = {{Who::Actor, "spellstrike-spent", 0}};
+    return action;
 }
 
-ActionPtr sureStrike(const Character&)
+ActionPtr SureStrike(const Character&)
 {
-    auto a = make("Sure Strike", 1);
-    a->outcomes[S].counters = {{Who::Actor, "fortune:attack"}};
-    return a;
+    auto action = Make("Sure Strike", 1);
+    action->outcomes[kSuccess].counters = {{Who::Actor, "fortune:attack"}};
+    return action;
 }
 
-ActionPtr heroism(const Character&, const Character& ally, int rank)
+ActionPtr Heroism(const Character&, const Character& ally, int rank)
 {
-    auto a = make("Heroism -> " + ally.name, 2);
-    a->allyTarget = ally.name;
+    auto action = Make("Heroism -> " + ally.name, 2);
+    action->allyName = ally.name;
     int value = rank >= 9 ? 3 : rank >= 6 ? 2 : 1;
-    a->outcomes[S].modifiers = {allyBonus(Who::Ally, "heroism", value,
-                                          select({Tag::AttackRoll, Tag::Save, Tag::Skill | Tag::Check,
-                                                  Tag::Perception | Tag::Check}))};
-    return a;
+    action->outcomes[kSuccess].modifiers = {AllyBonus(Who::Ally, "heroism", value,
+                                                      Select({Tag::AttackRoll, Tag::Save, Tag::Skill | Tag::Check,
+                                                              Tag::Perception | Tag::Check}))};
+    return action;
 }
 
-ActionPtr bless(const Character&)
+ActionPtr Bless(const Character&)
 {
-    auto a = make("Bless", 2);
-    a->outcomes[S].modifiers = {allyBonus(Who::AllAllies, "bless", 1, select({Tag::AttackRoll}))};
-    return a;
+    auto action = Make("Bless", 2);
+    action->outcomes[kSuccess].modifiers = {AllyBonus(Who::AllAllies, "bless", 1, Select({Tag::AttackRoll}))};
+    return action;
 }
 
-ActionPtr courageousAnthem(const Character&)
+ActionPtr CourageousAnthem(const Character&)
 {
-    auto a = make("Courageous Anthem", 1);
-    a->outcomes[S].modifiers = {
-        allyBonus(Who::AllAllies, "courageous-anthem", 1, select({Tag::AttackRoll, Tag::Damage}))};
-    return a;
+    auto action = Make("Courageous Anthem", 1);
+    action->outcomes[kSuccess].modifiers = {
+        AllyBonus(Who::AllAllies, "courageous-anthem", 1, Select({Tag::AttackRoll, Tag::Damage}))};
+    return action;
 }
 
-ActionPtr fear(const Character& caster, int rank)
+ActionPtr Fear(const Character& caster, int rank)
 {
-    auto a = make("Fear", 2);
-    a->check.kind = CheckKind::Save;
-    a->check.modifier = caster.spellDC;
-    a->check.tags = spellDCTags(caster);
-    a->check.defense = Defense::Will;
-    a->traits = {"concentrate", "emotion", "fear", "manipulate", "mental"};
+    auto action = Make("Fear", 2);
+    action->check.kind = CheckKind::Save;
+    action->check.modifier = caster.spellDC;
+    action->check.tags = SpellDCTags(caster);
+    action->check.defense = Defense::Will;
+    action->traits = {"concentrate", "emotion", "fear", "manipulate", "mental"};
     (void)rank;  // heightening only adds targets
-    a->outcomes[S].conditions = {{ConditionKind::Frightened, 1}};
-    a->outcomes[F].conditions = {{ConditionKind::Frightened, 2}};
-    a->outcomes[CF].conditions = {{ConditionKind::Frightened, 3}};
-    return a;
+    action->outcomes[kSuccess].conditions = {{ConditionKind::Frightened, 1}};
+    action->outcomes[kFail].conditions = {{ConditionKind::Frightened, 2}};
+    action->outcomes[kCritFail].conditions = {{ConditionKind::Frightened, 3}};
+    return action;
 }
 
-ActionPtr heal(const Character&, const Character& ally, int rank, int actions)
+ActionPtr Heal(const Character&, const Character& ally, int rank, int actions)
 {
-    auto a = make("Heal (" + std::to_string(actions) + "a) -> " + (actions == 3 ? std::string("party") : ally.name),
-                  actions);
-    a->allyTarget = ally.name;
-    HealSpec h{rank, 8, actions == 2 ? 8 * rank : 0, actions == 3 ? Who::AllAllies : Who::Ally};
-    a->outcomes[S].heal = h;
-    return a;
+    auto action = Make("Heal (" + std::to_string(actions) + "a) -> " +
+                           (actions == 3 ? std::string("party") : ally.name),
+                       actions);
+    action->allyName = ally.name;
+    HealSpec healing{rank, 8, actions == 2 ? 8 * rank : 0, actions == 3 ? Who::AllAllies : Who::Ally};
+    action->outcomes[kSuccess].heal = healing;
+    return action;
 }
 
-ActionPtr basicSaveSpell(const Character& caster, const std::string& name, int cost, Defense save,
+ActionPtr BasicSaveSpell(const Character& caster, const std::string& name, int cost, Defense save,
                          std::vector<DamageComponent> damage, std::set<std::string> traits, int incapacitationRank)
 {
-    auto a = make(name, cost);
-    a->check.kind = CheckKind::Save;
-    a->check.modifier = caster.spellDC;
-    a->check.tags = spellDCTags(caster);
-    a->check.defense = save;
-    a->check.incapacitationRank = incapacitationRank;
-    a->damage = std::move(damage);
-    a->damageTags = Tag::Damage | Tag::Spell;
-    a->traits = std::move(traits);
+    auto action = Make(name, cost);
+    action->check.kind = CheckKind::Save;
+    action->check.modifier = caster.spellDC;
+    action->check.tags = SpellDCTags(caster);
+    action->check.defense = save;
+    action->check.incapacitationRank = incapacitationRank;
+    action->damage = std::move(damage);
+    action->damageTags = Tag::Damage | Tag::Spell;
+    action->traits = std::move(traits);
     // Indexed by the ENEMY's degree of success.
-    a->outcomes[CS].damage = DamageScale::None;
-    a->outcomes[S].damage = DamageScale::Half;
-    a->outcomes[F].damage = DamageScale::Normal;
-    a->outcomes[CF].damage = DamageScale::Double;
-    return a;
+    action->outcomes[kCritSuccess].damage = DamageScale::None;
+    action->outcomes[kSuccess].damage = DamageScale::Half;
+    action->outcomes[kFail].damage = DamageScale::Normal;
+    action->outcomes[kCritFail].damage = DamageScale::Double;
+    return action;
 }
 
-ActionPtr spellAttackSpell(const Character& caster, const std::string& name, int cost,
+ActionPtr SpellAttackSpell(const Character& caster, const std::string& name, int cost,
                            std::vector<DamageComponent> damage, std::set<std::string> traits)
 {
-    auto a = make(name, cost);
-    a->check.kind = CheckKind::Attack;
-    a->check.modifier = caster.spellAttack;
-    a->check.tags = Tag::AttackRoll | Tag::Check | Tag::Spell | Tag::Ranged | attributeTag(caster.keyAttribute);
-    a->check.attackTrait = true;
-    a->damage = std::move(damage);
-    a->damageTags = Tag::Damage | Tag::Spell;
-    a->traits = std::move(traits);
-    a->traits.insert("attack");
-    a->outcomes[S].damage = DamageScale::Normal;
-    a->outcomes[CS].damage = DamageScale::Double;
-    return a;
+    auto action = Make(name, cost);
+    action->check.kind = CheckKind::Attack;
+    action->check.modifier = caster.spellAttack;
+    action->check.tags = Tag::AttackRoll | Tag::Check | Tag::Spell | Tag::Ranged | AttributeTag(caster.keyAttribute);
+    action->check.attackTrait = true;
+    action->damage = std::move(damage);
+    action->damageTags = Tag::Damage | Tag::Spell;
+    action->traits = std::move(traits);
+    action->traits.insert("attack");
+    action->outcomes[kSuccess].damage = DamageScale::Normal;
+    action->outcomes[kCritSuccess].damage = DamageScale::Double;
+    return action;
 }
 
-Feature sneakAttack(int dice)
+Feature SneakAttack(int dice)
 {
     return Feature{"Sneak Attack", [dice](EffectCtx& ctx) {
-                       const Weapon& w = *ctx.action.weapon;
-                       if ((w.ranged || w.agile || w.finesse) && ctx.enemyOffGuard())
-                           ctx.damage->push_back(precision(dice, 6, w.type));
+                       const Weapon& weapon = *ctx.action.weapon;
+                       if ((weapon.ranged || weapon.agile || weapon.finesse) && ctx.EnemyOffGuard())
+                           ctx.damage->push_back(Precision(dice, 6, weapon.type));
                    }};
 }
 
-Feature precisionEdge(int dice)
+Feature PrecisionEdge(int dice)
 {
     return Feature{"Precision", [dice](EffectCtx& ctx) {
-                       if (ctx.before.counter(ctx.actor, "prey") == 0 ||
-                           ctx.before.counter(ctx.actor, "precision-used") > 0)
+                       if (ctx.before.Counter(ctx.actorIndex, "prey") == 0 ||
+                           ctx.before.Counter(ctx.actorIndex, "precision-used") > 0)
                            return;
-                       ctx.damage->push_back(precision(dice, 8, ctx.action.weapon->type));
-                       ctx.state[ctx.actor].counters["precision-used"] = 1;
+                       ctx.damage->push_back(Precision(dice, 8, ctx.action.weapon->type));
+                       ctx.state[ctx.actorIndex].counters["precision-used"] = 1;
                    }};
 }

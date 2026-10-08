@@ -16,12 +16,12 @@
  * @brief   A full party round against one enemy, described with a fluent builder.
  * @code
  *   Scenario a("Ranger 3 strikes");
- *   a.against(brute)
- *    .turn(ranger, {strike(ranger, "Longbow"), strike(ranger, "Longbow"), strike(ranger, "Longbow")})
- *    .turn(rogue,  {strike(rogue, "Rapier"), strike(rogue, "Rapier")});
- *   Scenario b = a.variant("Ranger strike + Demoralize")
- *                 .replaceTurn(ranger, {strike(ranger, "Longbow"), demoralize(ranger)});
- *   compare({a, b});
+ *   a.Against(brute)
+ *    .AddTurn(ranger, {Strike(ranger, "Longbow"), Strike(ranger, "Longbow"), Strike(ranger, "Longbow")})
+ *    .AddTurn(rogue,  {Strike(rogue, "Rapier"), Strike(rogue, "Rapier")});
+ *   Scenario b = a.Variant("Ranger strike + Demoralize")
+ *                 .ReplaceTurn(ranger, {Strike(ranger, "Longbow"), Demoralize(ranger)});
+ *   Compare({a, b});
  * @endcode
  */
 class Scenario
@@ -38,16 +38,16 @@ public:
      * @param   [in] enemy - The enemy's stat block.
      * @return  This scenario, for chaining.
      */
-    Scenario& against(const Monster& enemy);
+    Scenario& Against(const Monster& enemy);
 
     /**
-     * @brief   Adds a party member. turn() adds members automatically.
+     * @brief   Adds a party member. AddTurn() adds members automatically.
      * @details The order members are added in gives their creature indices. A character with the same name as
      *          an existing member isn't added again.
-     * @param   [in] c - The character.
+     * @param   [in] character - The character.
      * @return  This scenario, for chaining.
      */
-    Scenario& member(const Character& c);
+    Scenario& Member(const Character& character);
 
     /**
      * @brief   Adds a turn after the existing ones, and adds the actor to the party if needed.
@@ -55,7 +55,7 @@ public:
      * @param   [in] steps - The actions, in order.
      * @return  This scenario, for chaining.
      */
-    Scenario& turn(const Character& actor, std::vector<Step> steps);
+    Scenario& AddTurn(const Character& actor, std::vector<Step> steps);
 
     /**
      * @brief   Replaces the steps of the actor's first turn, or adds a turn if they have none.
@@ -63,7 +63,7 @@ public:
      * @param   [in] steps - The new actions, in order.
      * @return  This scenario, for chaining.
      */
-    Scenario& replaceTurn(const Character& actor, std::vector<Step> steps);
+    Scenario& ReplaceTurn(const Character& actor, std::vector<Step> steps);
 
     /**
      * @brief   Starts the enemy with a condition that lasts the whole round.
@@ -72,40 +72,40 @@ public:
      * @param   [in] value - Its value.
      * @return  This scenario, for chaining.
      */
-    Scenario& enemyCondition(ConditionKind kind, int value = 1);
+    Scenario& EnemyCondition(ConditionKind kind, int value = 1);
 
     /**
      * @brief   Starts the enemy with a modifier that lasts the whole round.
      * @details For cover, or a debuff from an earlier round, for example.
-     * @param   [in] m - The modifier.
+     * @param   [in] modifier - The modifier.
      * @return  This scenario, for chaining.
      */
-    Scenario& enemyModifier(const Modifier& m);
+    Scenario& EnemyModifier(const Modifier& modifier);
 
     /**
      * @brief   Starts a character with a counter set.
      * @details For example "prey" if they hunted earlier, or "spellstrike-spent". Adds the character to the
      *          party if needed.
-     * @param   [in] who - The character.
-     * @param   [in] name - Counter name.
+     * @param   [in] character - The character.
+     * @param   [in] counterName - Counter name.
      * @param   [in] value - Its value.
      * @return  This scenario, for chaining.
      */
-    Scenario& counter(const Character& who, const std::string& name, int value = 1);
+    Scenario& Counter(const Character& character, const std::string& counterName, int value = 1);
 
     /**
      * @brief   Sets the run options.
-     * @param   [in] s - The settings.
+     * @param   [in] settings - The settings.
      * @return  This scenario, for chaining.
      */
-    Scenario& settings(const Settings& s);
+    Scenario& WithSettings(const Settings& settings);
 
     /**
-     * @brief   A copy of this scenario under another name, to change with replaceTurn() and friends.
+     * @brief   A copy of this scenario under another name, to change with ReplaceTurn() and friends.
      * @param   [in] name - Name of the copy.
      * @return  The copy.
      */
-    Scenario variant(std::string name) const;
+    Scenario Variant(std::string name) const;
 
     /**
      * @brief   Builds the starting state and runs the round.
@@ -113,20 +113,20 @@ public:
      * @throws  std::runtime_error if an action targets or grants an action to a character that isn't in the
      *          party.
      */
-    RunResult run() const;
+    RunResult Run() const;
 
     /**
      * @brief   The scenario's name.
      * @return  The name shown in reports.
      */
-    const std::string& name() const { return m_name; }
+    const std::string& Name() const { return m_name; }
 
 private:
-    std::string m_name;  /**< Name shown in reports. */
-    Encounter m_enc;     /**< The enemy and the party. */
-    std::vector<Turn> m_turns;  /**< The turns, in order. */
-    std::vector<std::pair<ConditionKind, int>> m_enemyConditions;  /**< Conditions the enemy starts with. */
-    std::vector<Modifier> m_enemyModifiers;  /**< Modifiers the enemy starts with. */
+    std::string m_name;                                             /**< Name shown in reports. */
+    Encounter m_encounter;                                                /**< The enemy and the party. */
+    std::vector<Turn> m_turns;                                      /**< The turns, in order. */
+    std::vector<std::pair<ConditionKind, int>> m_enemyConditions;   /**< Conditions the enemy starts with. */
+    std::vector<Modifier> m_enemyModifiers;                         /**< Modifiers the enemy starts with. */
 
     /**
      * @brief   Counters to start with, as (character, counter, value).
@@ -139,20 +139,20 @@ private:
  * @brief   Prints the report of one run.
  * @details Damage and healing per character and action, skipped actions, the enemy's conditions before each
  *          turn, and branch counts.
- * @param   [in] r - The result of a run.
+ * @param   [in] result - The result of a run.
  * @param   [in, out] os - Where to print.
  */
-void printReport(const RunResult& r, std::ostream& os);
+void PrintReport(const RunResult& result, std::ostream& os);
 
 /**
  * @brief   Runs every scenario, prints each report, then ranks them by expected damage.
  * @param   [in] scenarios - The scenarios to compare.
  * @param   [in, out] os - Where to print.
  */
-void compare(const std::vector<Scenario>& scenarios, std::ostream& os);
+void Compare(const std::vector<Scenario>& scenarios, std::ostream& os);
 
 /**
- * @brief   Same as compare(scenarios, os), printing to std::cout.
+ * @brief   Same as Compare(scenarios, os), printing to std::cout.
  * @param   [in] scenarios - The scenarios to compare.
  */
-void compare(const std::vector<Scenario>& scenarios);
+void Compare(const std::vector<Scenario>& scenarios);

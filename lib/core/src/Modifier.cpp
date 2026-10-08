@@ -7,9 +7,9 @@
 
 #include <algorithm>
 
-Tags attributeTag(Attribute a)
+Tags AttributeTag(Attribute attribute)
 {
-    switch (a)
+    switch (attribute)
     {
     case Attribute::None: return 0;
     case Attribute::Str: return Tag::Str;
@@ -22,19 +22,20 @@ Tags attributeTag(Attribute a)
     return 0;
 }
 
-bool Selector::matches(Tags query) const
+bool Selector::Matches(Tags query) const
 {
-    return std::any_of(anyOf.begin(), anyOf.end(), [query](Tags alt) { return (alt & query) == alt; });
+    return std::any_of(anyOf.begin(), anyOf.end(),
+                       [query](Tags alternative) { return (alternative & query) == alternative; });
 }
 
-Selector select(std::initializer_list<Tags> alternatives)
+Selector Select(std::initializer_list<Tags> alternatives)
 {
     return Selector{std::vector<Tags>(alternatives)};
 }
 
-const char* toString(BonusType t)
+const char* ToString(BonusType type)
 {
-    switch (t)
+    switch (type)
     {
     case BonusType::Circumstance: return "circumstance";
     case BonusType::Item: return "item";
@@ -44,28 +45,28 @@ const char* toString(BonusType t)
     return "?";
 }
 
-bool appliesTo(const Modifier& m, const RollQuery& q)
+bool AppliesTo(const Modifier& modifier, const RollQuery& query)
 {
-    if (m.vsCreature >= 0 && m.vsCreature != q.opponent)
+    if (modifier.vsCreatureIndex >= 0 && modifier.vsCreatureIndex != query.opponentIndex)
         return false;
-    return m.applies.matches(q.tags);
+    return modifier.applies.Matches(query.tags);
 }
 
-void Stacker::add(BonusType type, int value)
+void Stacker::Add(BonusType type, int value)
 {
     if (type == BonusType::Untyped)
     {
         m_untyped += value;
         return;
     }
-    int i = static_cast<int>(type);
+    int slot = static_cast<int>(type);
     if (value > 0)
-        m_bestBonus[i] = std::max(m_bestBonus[i], value);
+        m_bestBonus[slot] = std::max(m_bestBonus[slot], value);
     else
-        m_worstPenalty[i] = std::min(m_worstPenalty[i], value);
+        m_worstPenalty[slot] = std::min(m_worstPenalty[slot], value);
 }
 
-int Stacker::total() const
+int Stacker::Total() const
 {
     int sum = m_untyped;
     for (int i = 0; i < 3; ++i)

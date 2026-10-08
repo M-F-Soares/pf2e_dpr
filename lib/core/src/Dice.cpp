@@ -7,68 +7,68 @@
 
 #include <algorithm>
 
-Dist Dist::constant(int value)
+Dist Dist::Constant(int value)
 {
-    Dist d;
-    d.m_p = {{value, 1.0}};
-    return d;
+    Dist result;
+    result.m_probabilities = {{value, 1.0}};
+    return result;
 }
 
-Dist Dist::die(int sides)
+Dist Dist::Die(int sides)
 {
-    Dist d;
-    d.m_p.clear();
+    Dist result;
+    result.m_probabilities.clear();
     for (int face = 1; face <= sides; ++face)
-        d.m_p[face] = 1.0 / sides;
-    return d;
+        result.m_probabilities[face] = 1.0 / sides;
+    return result;
 }
 
-Dist Dist::dice(int count, int sides)
+Dist Dist::Dice(int count, int sides)
 {
-    Dist d;
+    Dist result;
     for (int i = 0; i < count; ++i)
-        d += die(sides);
-    return d;
+        result += Die(sides);
+    return result;
 }
 
 Dist Dist::operator+(const Dist& other) const
 {
     Dist out;
-    out.m_p.clear();
-    for (auto [a, pa] : m_p)
-        for (auto [b, pb] : other.m_p)
-            out.m_p[a + b] += pa * pb;
+    out.m_probabilities.clear();
+    for (auto [value, probability] : m_probabilities)
+        for (auto [otherValue, otherProbability] : other.m_probabilities)
+            out.m_probabilities[value + otherValue] += probability * otherProbability;
     return out;
 }
 
 Dist Dist::operator+(int flat) const
 {
-    return map([flat](int x) { return x + flat; });
+    return Map([flat](int value) { return value + flat; });
 }
 
-Dist Dist::map(const std::function<int(int)>& f) const
+Dist Dist::Map(const std::function<int(int)>& transform) const
 {
     Dist out;
-    out.m_p.clear();
-    for (auto [v, p] : m_p)
-        out.m_p[f(v)] += p;
+    out.m_probabilities.clear();
+    for (auto [value, probability] : m_probabilities)
+        out.m_probabilities[transform(value)] += probability;
     return out;
 }
 
-Dist Dist::atLeast(int minimum) const
+Dist Dist::AtLeast(int minimum) const
 {
-    return map([minimum](int x) { return std::max(x, minimum); });
+    return Map([minimum](int value) { return std::max(value, minimum); });
 }
 
-double Dist::mean() const
+double Dist::Mean() const
 {
-    return expected([](int x) { return static_cast<double>(x); });
+    return Expected([](int value) { return static_cast<double>(value); });
 }
 
-double Dist::expected(const std::function<double(int)>& f) const
+double Dist::Expected(const std::function<double(int)>& transform) const
 {
     double sum = 0.0;
-    for (auto [v, p] : m_p)
-        sum += p * f(v);
+    for (auto [value, probability] : m_probabilities)
+        sum += probability * transform(value);
     return sum;
 }

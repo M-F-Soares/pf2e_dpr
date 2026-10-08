@@ -73,10 +73,10 @@ enum class Attribute
 
 /**
  * @brief   Tag bit for rolls and DCs based on an attribute.
- * @param   [in] a - The attribute.
+ * @param   [in] attribute - The attribute.
  * @return  The matching Tag bit, or 0 for Attribute::None.
  */
-Tags attributeTag(Attribute a);
+Tags AttributeTag(Attribute attribute);
 
 /**
  * @brief   Which rolls a modifier applies to: any one of several tag combinations.
@@ -95,7 +95,7 @@ struct Selector
      * @param   [in] query - Tags of the roll or DC.
      * @return  True when every bit of some alternative is set in @p query.
      */
-    bool matches(Tags query) const;
+    bool Matches(Tags query) const;
 
     /**
      * @brief   Member-wise ordering, so states that hold modifiers can be compared and merged.
@@ -106,10 +106,10 @@ struct Selector
 
 /**
  * @brief   Builds a Selector from its alternatives.
- * @param   [in] alternatives - Tag combinations, e.g. `select({Tag::AttackRoll, Tag::Skill | Tag::Check})`.
+ * @param   [in] alternatives - Tag combinations, e.g. `Select({Tag::AttackRoll, Tag::Skill | Tag::Check})`.
  * @return  A selector that matches a roll with all the bits of any one alternative.
  */
-Selector select(std::initializer_list<Tags> alternatives);
+Selector Select(std::initializer_list<Tags> alternatives);
 
 /**
  * @brief   Type of a bonus or penalty, which decides how it stacks (see Stacker).
@@ -124,10 +124,10 @@ enum class BonusType
 
 /**
  * @brief   Name of a bonus type for reports ("circumstance", "item", "status", "untyped").
- * @param   [in] t - The bonus type.
+ * @param   [in] type - The bonus type.
  * @return  A static string; "?" for an out-of-range value.
  */
-const char* toString(BonusType t);
+const char* ToString(BonusType type);
 
 /**
  * @brief   A typed bonus or penalty, and the rolls it applies to.
@@ -138,7 +138,7 @@ struct Modifier
     BonusType type = BonusType::Untyped;  /**< How it stacks with other modifiers. */
     int value = 0;                        /**< Positive = bonus, negative = penalty. */
     Selector applies;                     /**< The rolls and DCs it applies to. */
-    int vsCreature = -1;                  /**< Only against this opposing creature index (-1 = anyone). */
+    int vsCreatureIndex = -1;             /**< Only against this opposing creature index (-1 = anyone). */
     bool grantsOffGuard = false;          /**< The holder counts as off-guard (for precision damage, etc.). */
 
     /**
@@ -153,18 +153,18 @@ struct Modifier
  */
 struct RollQuery
 {
-    Tags tags = 0;      /**< Tags of the roll or DC. */
-    int opponent = -1;  /**< Index of the creature on the other side of the roll (-1 = none). */
+    Tags tags = 0;           /**< Tags of the roll or DC. */
+    int opponentIndex = -1;  /**< Index of the creature on the other side of the roll (-1 = none). */
 };
 
 /**
  * @brief   Whether a modifier applies to a roll.
- * @param   [in] m - The modifier.
- * @param   [in] q - The roll.
- * @return  True when @p m's selector matches the roll's tags and, if @p m only works against one creature,
- *          that creature is the roll's opponent.
+ * @param   [in] modifier - The modifier.
+ * @param   [in] query - The roll.
+ * @return  True when @p modifier's selector matches the roll's tags and, if @p modifier only works against one
+ *          creature, that creature is the roll's opponent.
  */
-bool appliesTo(const Modifier& m, const RollQuery& q);
+bool AppliesTo(const Modifier& modifier, const RollQuery& query);
 
 /**
  * @brief   Totals bonuses and penalties with the PF2e stacking rules.
@@ -179,20 +179,20 @@ public:
      * @param   [in] type - How it stacks.
      * @param   [in] value - Positive for a bonus, negative for a penalty.
      */
-    void add(BonusType type, int value);
+    void Add(BonusType type, int value);
 
     /**
      * @brief   Adds a modifier's type and value.
      * @details Its selector isn't checked.
-     * @param   [in] m - The modifier.
+     * @param   [in] modifier - The modifier.
      */
-    void add(const Modifier& m) { add(m.type, m.value); }
+    void Add(const Modifier& modifier) { Add(modifier.type, modifier.value); }
 
     /**
      * @brief   Net total of everything added so far.
      * @return  The untyped sum, plus the best bonus and worst penalty of each type.
      */
-    int total() const;
+    int Total() const;
 
 private:
     int m_bestBonus[3] = {0, 0, 0};     /**< Highest bonus of each typed BonusType, indexed by its value. */

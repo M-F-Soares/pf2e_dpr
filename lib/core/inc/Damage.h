@@ -14,7 +14,7 @@
 
 /**
  * @brief   Damage types.
- * @details The name from toString() is also the entry to put in DamageDefenses::immunities for an immunity to
+ * @details The name from ToString() is also the entry to put in DamageDefenses::immunities for an immunity to
  *          the type.
  */
 enum class DamageType
@@ -41,17 +41,17 @@ enum class DamageType
 
 /**
  * @brief   Lowercase name of a damage type ("fire", "slashing", ...).
- * @param   [in] t - The damage type.
+ * @param   [in] type - The damage type.
  * @return  A static string; "?" for an out-of-range value.
  */
-const char* toString(DamageType t);
+const char* ToString(DamageType type);
 
 /**
  * @brief   Whether a damage type is bludgeoning, piercing or slashing.
- * @param   [in] t - The damage type.
+ * @param   [in] type - The damage type.
  * @return  True for the three physical types (not for DamageType::Physical itself).
  */
-bool isPhysical(DamageType t);
+bool IsPhysical(DamageType type);
 
 /**
  * @brief   How a damage component is dealt.
@@ -68,12 +68,12 @@ enum class DamageCategory
  */
 struct DamageComponent
 {
-    int count = 0;  /**< Number of dice. */
-    int die = 0;    /**< Die size (4, 6, 8, ...). */
-    int flat = 0;   /**< Flat amount added to the dice. */
-    DamageType type = DamageType::Bludgeoning;         /**< Damage type. */
-    DamageCategory category = DamageCategory::Normal;  /**< Normal, precision or persistent. */
-    bool doublesOnCrit = true;  /**< False for deadly/fatal extra dice, crit-only riders, ... */
+    int count = 0;                                      /**< Number of dice. */
+    int die = 0;                                        /**< Die size (4, 6, 8, ...). */
+    int flat = 0;                                       /**< Flat amount added to the dice. */
+    DamageType type = DamageType::Bludgeoning;          /**< Damage type. */
+    DamageCategory category = DamageCategory::Normal;   /**< Normal, precision or persistent. */
+    bool doublesOnCrit = true;                          /**< False for deadly/fatal extra dice, crit-only riders, ... */
 
     /**
      * @brief   This much of the target's resistance to this type is ignored (Overwhelming Spellstrike).
@@ -84,13 +84,13 @@ struct DamageComponent
      * @brief   Exact distribution of the component, before doubling or halving.
      * @return  The distribution of `count`d`die` + `flat`.
      */
-    Dist dist() const { return Dist::dice(count, die) + flat; }
+    Dist Distribution() const { return Dist::Dice(count, die) + flat; }
 
     /**
      * @brief   Average of the component, before doubling or halving.
      * @return  The mean of `count`d`die` + `flat`.
      */
-    double mean() const { return count * (die + 1) / 2.0 + flat; }
+    double Mean() const { return count * (die + 1) / 2.0 + flat; }
 
     /**
      * @brief   Member-wise ordering, so states that hold persistent damage can be compared and merged.
@@ -100,14 +100,14 @@ struct DamageComponent
 };
 
 /**
- * @brief   Normal damage, e.g. `dmg(2, 6, 4, DamageType::Slashing)` for 2d6+4 slashing.
+ * @brief   Normal damage, e.g. `Damage(2, 6, 4, DamageType::Slashing)` for 2d6+4 slashing.
  * @param   [in] count - Number of dice.
  * @param   [in] die - Die size.
  * @param   [in] flat - Flat amount added to the dice.
  * @param   [in] type - Damage type.
  * @return  The component.
  */
-DamageComponent dmg(int count, int die, int flat, DamageType type);
+DamageComponent Damage(int count, int die, int flat, DamageType type);
 
 /**
  * @brief   Precision damage (Sneak Attack, Precision edge).
@@ -116,17 +116,17 @@ DamageComponent dmg(int count, int die, int flat, DamageType type);
  * @param   [in] type - Damage type, normally the same as the attack's.
  * @return  The component.
  */
-DamageComponent precision(int count, int die, DamageType type);
+DamageComponent Precision(int count, int die, DamageType type);
 
 /**
- * @brief   Persistent damage, e.g. `persistent(1, 10, 0, DamageType::Fire)` for 1d10 persistent fire.
+ * @brief   Persistent damage, e.g. `Persistent(1, 10, 0, DamageType::Fire)` for 1d10 persistent fire.
  * @param   [in] count - Number of dice.
  * @param   [in] die - Die size.
  * @param   [in] flat - Flat amount added to the dice.
  * @param   [in] type - Damage type.
  * @return  The component.
  */
-DamageComponent persistent(int count, int die, int flat, DamageType type);
+DamageComponent Persistent(int count, int die, int flat, DamageType type);
 
 /**
  * @brief   How a damage roll is scaled by the degree of success.
@@ -160,16 +160,16 @@ using Weakness = Resistance;
  */
 struct DamageDefenses
 {
-    std::set<std::string> immunities;  /**< Damage type names, "precision", "critical-hits", trait names... */
-    std::vector<Resistance> resistances;  /**< Resistances; the highest applicable one counts. */
-    std::vector<Weakness> weaknesses;     /**< Weaknesses; the highest applicable one counts. */
+    std::set<std::string> immunities;       /**< Damage type names, "precision", "critical-hits", trait names... */
+    std::vector<Resistance> resistances;    /**< Resistances; the highest applicable one counts. */
+    std::vector<Weakness> weaknesses;       /**< Weaknesses; the highest applicable one counts. */
 
     /**
      * @brief   Whether the target is immune to something.
-     * @param   [in] what - A damage type name, condition name, trait, "precision" or "critical-hits".
-     * @return  True if @p what is in the immunities.
+     * @param   [in] immunityName - A damage type name, condition name, trait, "precision" or "critical-hits".
+     * @return  True if @p immunityName is in the immunities.
      */
-    bool immuneTo(const std::string& what) const { return immunities.count(what) > 0; }
+    bool ImmuneTo(const std::string& immunityName) const { return immunities.count(immunityName) > 0; }
 };
 
 /**
@@ -193,7 +193,7 @@ struct DamageRoll
  *          them is bypassed.
  * @return  The expected damage.
  */
-double expectedDamage(const std::vector<DamageComponent>& components, DamageScale scale,
+double ExpectedDamage(const std::vector<DamageComponent>& components, DamageScale scale,
                       const DamageDefenses& defenses, const std::set<std::string>& attackTraits = {});
 
 /**
@@ -206,5 +206,5 @@ double expectedDamage(const std::vector<DamageComponent>& components, DamageScal
  *          them is bypassed.
  * @return  The expected damage of the combined instance.
  */
-double expectedDamage(const std::vector<DamageRoll>& rolls, const DamageDefenses& defenses,
+double ExpectedDamage(const std::vector<DamageRoll>& rolls, const DamageDefenses& defenses,
                       const std::set<std::string>& attackTraits = {});

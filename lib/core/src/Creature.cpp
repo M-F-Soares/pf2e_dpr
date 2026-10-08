@@ -7,9 +7,9 @@
 
 #include <stdexcept>
 
-Attribute skillAttribute(Skill s)
+Attribute SkillAttribute(Skill skill)
 {
-    switch (s)
+    switch (skill)
     {
     case Skill::Athletics: return Attribute::Str;
     case Skill::Acrobatics:
@@ -31,9 +31,9 @@ Attribute skillAttribute(Skill s)
     return Attribute::None;
 }
 
-Tags defenseRollTags(Defense d)
+Tags DefenseRollTags(Defense defense)
 {
-    switch (d)
+    switch (defense)
     {
     case Defense::AC: return Tag::AC | Tag::DC | Tag::Dex;
     case Defense::Fort: return Tag::Save | Tag::Check | Tag::Fort | Tag::Con;
@@ -44,9 +44,9 @@ Tags defenseRollTags(Defense d)
     return 0;
 }
 
-Tags defenseDCTags(Defense d)
+Tags DefenseDCTags(Defense defense)
 {
-    switch (d)
+    switch (defense)
     {
     case Defense::AC: return Tag::AC | Tag::DC | Tag::Dex;
     case Defense::Fort: return Tag::Fort | Tag::DC | Tag::Con;
@@ -57,25 +57,25 @@ Tags defenseDCTags(Defense d)
     return 0;
 }
 
-int Character::skill(Skill s) const
+int Character::SkillModifier(Skill skill) const
 {
-    auto it = skills.find(s);
+    auto it = skills.find(skill);
     if (it == skills.end())
         throw std::runtime_error(name + " has no modifier set for that skill");
     return it->second;
 }
 
-const Weapon& Character::weapon(const std::string& weaponName) const
+const Weapon& Character::GetWeapon(const std::string& weaponName) const
 {
-    for (const auto& w : weapons)
-        if (w.name == weaponName)
-            return w;
+    for (const auto& weapon : weapons)
+        if (weapon.name == weaponName)
+            return weapon;
     throw std::runtime_error(name + " has no weapon named " + weaponName);
 }
 
-int Monster::defenseValue(Defense d) const
+int Monster::DefenseValue(Defense defense) const
 {
-    switch (d)
+    switch (defense)
     {
     case Defense::AC: return ac;
     case Defense::Fort: return fort;
@@ -86,7 +86,7 @@ int Monster::defenseValue(Defense d) const
     return 0;
 }
 
-int Monster::defenseDC(Defense d) const
+int Monster::DefenseDC(Defense defense) const
 {
-    return d == Defense::AC ? ac : 10 + defenseValue(d);
+    return defense == Defense::AC ? ac : 10 + DefenseValue(defense);
 }

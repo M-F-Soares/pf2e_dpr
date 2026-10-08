@@ -5,9 +5,9 @@
 
 #include "Condition.h"
 
-const char* toString(ConditionKind k)
+const char* ToString(ConditionKind kind)
 {
-    switch (k)
+    switch (kind)
     {
     case ConditionKind::Frightened: return "frightened";
     case ConditionKind::Sickened: return "sickened";
@@ -33,14 +33,14 @@ namespace
 {
 /**
  * @brief   A status penalty named after the condition.
- * @param   [in] k - The condition (its name is the modifier's source).
+ * @param   [in] kind - The condition (its name is the modifier's source).
  * @param   [in] value - The condition value; the penalty is -value.
- * @param   [in] s - The rolls it applies to.
+ * @param   [in] selector - The rolls it applies to.
  * @return  The modifier.
  */
-Modifier statusPenalty(ConditionKind k, int value, Selector s)
+Modifier StatusPenalty(ConditionKind kind, int value, Selector selector)
 {
-    return Modifier{toString(k), BonusType::Status, -value, std::move(s)};
+    return Modifier{ToString(kind), BonusType::Status, -value, std::move(selector)};
 }
 
 /**
@@ -48,13 +48,13 @@ Modifier statusPenalty(ConditionKind k, int value, Selector s)
  * @param   [in] source - Name of the modifier.
  * @return  The modifier.
  */
-Modifier offGuard(const char* source)
+Modifier OffGuard(const char* source)
 {
-    return Modifier{source, BonusType::Circumstance, -2, select({Tag::AC}), -1, true};
+    return Modifier{source, BonusType::Circumstance, -2, Select({Tag::AC}), -1, true};
 }
 } // namespace
 
-std::vector<Modifier> conditionModifiers(ConditionKind kind, int value)
+std::vector<Modifier> ConditionModifiers(ConditionKind kind, int value)
 {
     if (value <= 0)
         return {};
@@ -62,28 +62,28 @@ std::vector<Modifier> conditionModifiers(ConditionKind kind, int value)
     {
     case ConditionKind::Frightened:
     case ConditionKind::Sickened:
-        return {statusPenalty(kind, value, select({Tag::Check, Tag::DC}))};
+        return {StatusPenalty(kind, value, Select({Tag::Check, Tag::DC}))};
     case ConditionKind::Clumsy:
-        return {statusPenalty(kind, value, select({Tag::Dex}))};
+        return {StatusPenalty(kind, value, Select({Tag::Dex}))};
     case ConditionKind::Enfeebled:
-        return {statusPenalty(kind, value, select({Tag::Str}))};
+        return {StatusPenalty(kind, value, Select({Tag::Str}))};
     case ConditionKind::Drained:
-        return {statusPenalty(kind, value, select({Tag::Con}))};
+        return {StatusPenalty(kind, value, Select({Tag::Con}))};
     case ConditionKind::Stupefied:
-        return {statusPenalty(kind, value, select({Tag::Int, Tag::Wis, Tag::Cha}))};
+        return {StatusPenalty(kind, value, Select({Tag::Int, Tag::Wis, Tag::Cha}))};
     case ConditionKind::OffGuard:
     case ConditionKind::Grabbed:
     case ConditionKind::Restrained:
-        return {offGuard("off-guard")};
+        return {OffGuard("off-guard")};
     case ConditionKind::Prone:
-        return {offGuard("off-guard"),
-                Modifier{"prone", BonusType::Circumstance, -2, select({Tag::AttackRoll})}};
+        return {OffGuard("off-guard"),
+                Modifier{"prone", BonusType::Circumstance, -2, Select({Tag::AttackRoll})}};
     default:
         return {};
     }
 }
 
-int conditionActionDelta(ConditionKind kind, int value)
+int ConditionActionDelta(ConditionKind kind, int value)
 {
     switch (kind)
     {

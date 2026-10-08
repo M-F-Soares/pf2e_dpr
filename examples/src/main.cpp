@@ -15,39 +15,39 @@
  */
 int main()
 {
-    Character ranger = exampleRanger();
-    Character bard = exampleBard();
-    Character rogue = exampleRogue();
-    Monster brute = exampleBrute();
+    Character ranger = ExampleRanger();
+    Character bard = ExampleBard();
+    Character rogue = ExampleRogue();
+    Monster brute = ExampleBrute();
     const std::string bow = "Composite Longbow";
 
     // Ranger hunted the brute in an earlier round.
     Scenario base("Ranger 3 Strikes");
-    base.against(brute)
-        .counter(ranger, "prey")
-        .turn(ranger, {strike(ranger, bow), strike(ranger, bow), strike(ranger, bow)})
-        .turn(bard, {courageousAnthem(bard), heroism(bard, rogue)})
-        .turn(rogue, {strike(rogue, "Rapier"), strike(rogue, "Rapier"), strike(rogue, "Rapier")});
+    base.Against(brute)
+        .Counter(ranger, "prey")
+        .AddTurn(ranger, {Strike(ranger, bow), Strike(ranger, bow), Strike(ranger, bow)})
+        .AddTurn(bard, {CourageousAnthem(bard), Heroism(bard, rogue)})
+        .AddTurn(rogue, {Strike(rogue, "Rapier"), Strike(rogue, "Rapier"), Strike(rogue, "Rapier")});
 
-    Scenario demoralizeFirst = base.variant("Ranger Demoralize + 2 Strikes")
-                                   .replaceTurn(ranger, {demoralize(ranger), strike(ranger, bow), strike(ranger, bow)});
+    Scenario demoralizeFirst = base.Variant("Ranger Demoralize + 2 Strikes")
+                                   .ReplaceTurn(ranger, {Demoralize(ranger), Strike(ranger, bow), Strike(ranger, bow)});
 
-    Scenario rogueFeints = base.variant("Rogue Feint + 2 Strikes")
-                               .replaceTurn(rogue, {feint(rogue), strike(rogue, "Rapier"), strike(rogue, "Rapier")});
+    Scenario rogueFeints = base.Variant("Rogue Feint + 2 Strikes")
+                               .ReplaceTurn(rogue, {Feint(rogue), Strike(rogue, "Rapier"), Strike(rogue, "Rapier")});
 
-    Scenario bardFears = base.variant("Bard Fear + Anthem (no Heroism)")
-                             .replaceTurn(bard, {courageousAnthem(bard), fear(bard)});
+    Scenario bardFears = base.Variant("Bard Fear + Anthem (no Heroism)")
+                             .ReplaceTurn(bard, {CourageousAnthem(bard), Fear(bard)});
 
     // Adaptive: the ranger tries to Trip; the rogue only Feints in the branches where
     // the brute isn't already off-guard (prone), otherwise Strikes three times.
-    Scenario tripAndAdapt = base.variant("Ranger Trip, Rogue Feints if needed")
-                                .replaceTurn(ranger, {trip(ranger), strike(ranger, bow), strike(ranger, bow)})
-                                .replaceTurn(rogue, {choose([&](const View& v) {
-                                                         return v.enemyOffGuardToMe() ? strike(rogue, "Rapier")
-                                                                                      : feint(rogue);
+    Scenario tripAndAdapt = base.Variant("Ranger Trip, Rogue Feints if needed")
+                                .ReplaceTurn(ranger, {Trip(ranger), Strike(ranger, bow), Strike(ranger, bow)})
+                                .ReplaceTurn(rogue, {Choose([&](const View& view) {
+                                                         return view.EnemyOffGuardToMe() ? Strike(rogue, "Rapier")
+                                                                                         : Feint(rogue);
                                                      }),
-                                                     strike(rogue, "Rapier"), strike(rogue, "Rapier")});
+                                                     Strike(rogue, "Rapier"), Strike(rogue, "Rapier")});
 
-    compare({base, demoralizeFirst, rogueFeints, bardFears, tripAndAdapt});
+    Compare({base, demoralizeFirst, rogueFeints, bardFears, tripAndAdapt});
     return 0;
 }
