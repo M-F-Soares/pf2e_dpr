@@ -1,3 +1,8 @@
+/**
+ * @file    Action.h
+ * @brief   Data description of an action: what is rolled, and what each degree of success does.
+ */
+
 #pragma once
 
 #include "Check.h"
@@ -13,194 +18,345 @@
 #include <vector>
 
 struct Action;
+
+/**
+ * @brief   Shared, immutable handle to an Action.
+ * @details Factories return these so turns can reuse them.
+ */
 using ActionPtr = std::shared_ptr<const Action>;
 
-// Who an effect lands on, resolved when the action runs.
+/**
+ * @brief   Who an effect lands on, resolved when the action runs.
+ */
 enum class Who
 {
-    Actor,      // the creature doing the action
-    Ally,       // the action's ally target (Action::allyTarget)
-    AllAllies,  // every party member
-    Enemy,
+    Actor,      /**< The creature doing the action. */
+    Ally,       /**< The action's ally target (Action::allyTarget). */
+    AllAllies,  /**< Every party member. */
+    Enemy,      /**< The enemy. */
 };
 
+/**
+ * @brief   When an effect applied by an action ends, relative to the creatures involved.
+ * @details Resolved into a Duration when the action runs.
+ */
 struct DurationSpec
 {
-    Expiry when = Expiry::Never;
-    Who of = Who::Actor;  // whose turn start/end ends it
+    Expiry when = Expiry::Never;  /**< Start or end of turn, or never. */
+    Who of = Who::Actor;          /**< Whose turn start/end ends it. */
 };
 
+/**
+ * @brief   The effect lasts for the rest of the simulated round.
+ * @return  The duration spec.
+ */
 inline DurationSpec forTheRound() { return {}; }
+
+/**
+ * @brief   The effect ends at the end of the actor's turn.
+ * @return  The duration spec.
+ */
 inline DurationSpec untilEndOfActorTurn() { return {Expiry::EndOfTurn, Who::Actor}; }
+
+/**
+ * @brief   The effect ends at the start of the actor's next turn.
+ * @return  The duration spec.
+ */
 inline DurationSpec untilStartOfActorTurn() { return {Expiry::StartOfTurn, Who::Actor}; }
 
+/**
+ * @brief   What kind of check an action rolls.
+ */
 enum class CheckKind
 {
-    None,     // automatic: the Success outcome happens
-    Attack,   // actor rolls vs the enemy's defense as a DC (Strike, Demoralize, Trip, spell attack)
-    Save,     // enemy rolls a save vs the actor's DC; outcomes are the ENEMY's degree
-    FixedDC,  // actor rolls vs a fixed DC (Aid, Battle Medicine)
+    None,     /**< Automatic: the Success outcome happens. */
+    Attack,   /**< Actor rolls vs the enemy's defense as a DC (Strike, Demoralize, Trip, spell attack). */
+    Save,     /**< Enemy rolls a save vs the actor's DC; outcomes are the ENEMY's degree. */
+    FixedDC,  /**< Actor rolls vs a fixed DC (Aid, Battle Medicine). */
 };
 
+/**
+ * @brief   The check an action rolls, with the numbers it needs.
+ */
 struct CheckSpec
 {
-    CheckKind kind = CheckKind::None;
-    int modifier = 0;   // Attack/FixedDC: the actor's total bonus. Save: the actor's DC.
-    int itemBonus = 0;  // item bonus included in `modifier` (stacks properly with other item bonuses)
-    Tags tags = 0;      // tags of the actor's roll (or of the actor's DC for saves)
-    Defense defense = Defense::AC;
-    int fixedDC = 0;
-    bool attackTrait = false;  // counts for and suffers the multiple attack penalty
-    int attacks = 1;           // attacks it counts as for the penalty, applied afterwards (Spellstrike: 2)
-    bool agile = false;
-    int untypedPenalty = 0;    // range increments, etc. (negative)
-    bool fortune = false;
-    bool targeted = true;      // concealed/hidden flat checks apply
-    int incapacitationRank = 0;  // > 0: incapacitation trait with this spell rank (or half level)
+    CheckKind kind = CheckKind::None;  /**< What is rolled. */
+    int modifier = 0;   /**< Attack/FixedDC: the actor's total bonus. Save: the actor's DC. */
+    int itemBonus = 0;  /**< Item bonus included in `modifier` (stacks properly with other item bonuses). */
+    Tags tags = 0;      /**< Tags of the actor's roll (or of the actor's DC for saves). */
+    Defense defense = Defense::AC;  /**< Attack: the enemy defense used as the DC. Save: the save the enemy rolls. */
+    int fixedDC = 0;                /**< FixedDC: the DC. */
+    bool attackTrait = false;  /**< Counts for and suffers the multiple attack penalty. */
+    int attacks = 1;           /**< Attacks it counts as for the penalty, applied afterwards (Spellstrike: 2). */
+    bool agile = false;        /**< Agile: -4/-8 multiple attack penalty instead of -5/-10. */
+    int untypedPenalty = 0;    /**< Range increments, etc. (negative). */
+    bool fortune = false;      /**< The roll has fortune (for CheckKind::Save, the enemy's save does). */
+    bool targeted = true;      /**< Concealed/hidden flat checks apply. */
+    int incapacitationRank = 0;  /**< > 0: incapacitation trait with this spell rank (or half level). */
 };
 
+/**
+ * @brief   A condition an outcome applies.
+ */
 struct ApplyCondition
 {
-    ConditionKind kind;
-    int value = 1;
-    DurationSpec until;
-    Who to = Who::Enemy;
+    ConditionKind kind;    /**< The condition. */
+    int value = 1;         /**< Its value. */
+    DurationSpec until;    /**< When it ends. */
+    Who to = Who::Enemy;   /**< Who gets it. */
 };
 
+/**
+ * @brief   A modifier an outcome applies.
+ */
 struct ApplyModifier
 {
-    Who to;
-    Modifier mod;
-    DurationSpec until;
-    int uses = -1;
-    bool onlyVsActor = false;  // e.g. Feint: off-guard only against the feinter
+    Who to;              /**< Who gets it. */
+    Modifier mod;        /**< The modifier. */
+    DurationSpec until;  /**< When it ends. */
+    int uses = -1;       /**< -1 = unlimited; otherwise removed after applying to this many rolls. */
+    bool onlyVsActor = false;  /**< e.g. Feint: off-guard only against the feinter. */
 };
 
+/**
+ * @brief   A counter an outcome sets or clears (see CreatureState::counters).
+ */
 struct SetCounter
 {
-    Who on;
-    std::string name;
-    int value = 1;  // 0 clears the counter
+    Who on;            /**< Whose counter. */
+    std::string name;  /**< Counter name. */
+    int value = 1;     /**< 0 clears the counter. */
 };
 
+/**
+ * @brief   Healing an outcome rolls: `count`d`die` + `flat`, one roll for every target.
+ */
 struct HealSpec
 {
-    int count = 0;
-    int die = 0;
-    int flat = 0;
-    Who to = Who::Ally;
+    int count = 0;       /**< Number of dice. */
+    int die = 0;         /**< Die size. */
+    int flat = 0;        /**< Flat healing added to the dice. */
+    Who to = Who::Ally;  /**< Who is healed. */
 
+    /**
+     * @brief   Whether this heals at all.
+     * @return  True when there are dice or flat healing.
+     */
     bool any() const { return count > 0 || flat > 0; }
+
+    /**
+     * @brief   Exact distribution of the healing roll.
+     * @return  The distribution of `count`d`die` + `flat`.
+     */
     Dist dist() const { return Dist::dice(count, die) + flat; }
 };
 
-// An action an ally performs right away, outside their turn (Strike Hard!, ...).
+/**
+ * @brief   An action an ally performs right away, outside their turn (Strike Hard!, ...).
+ */
 struct Grant
 {
-    std::string ally;
-    ActionPtr action;
+    std::string ally;  /**< Name of the party member who acts. */
+    ActionPtr action;  /**< What they do. It's resolved as their action, but on the current turn. */
 };
 
 struct EffectCtx;
 
-// How a coupled spell (Spellstrike) gets its degree of success.
+/**
+ * @brief   How a coupled spell (Spellstrike) gets its degree of success.
+ */
 enum class Coupling
 {
-    SameRoll,  // spell attack spells: the Strike's result applies to the spell too
-    OwnRoll,   // save spells: the target saves normally, unless the Strike critically failed
+    SameRoll,  /**< Spell attack spells: the Strike's result applies to the spell too. */
+    OwnRoll,   /**< Save spells: the target saves normally, unless the Strike critically failed. */
 };
 
+/**
+ * @brief   A second action resolved together with the main one (see Action::coupled).
+ */
 struct CoupledEffect
 {
-    ActionPtr action;
-    Coupling roll = Coupling::SameRoll;
+    ActionPtr action;                    /**< The coupled action (Spellstrike: the spell). */
+    Coupling roll = Coupling::SameRoll;  /**< Where its degree of success comes from. */
 };
 
-// What happens on one degree of success.
+/**
+ * @brief   What happens on one degree of success.
+ */
 struct Outcome
 {
-    DamageScale damage = DamageScale::None;
-    std::vector<ApplyCondition> conditions;
-    std::vector<ApplyModifier> modifiers;
-    std::vector<SetCounter> counters;
-    HealSpec heal;
-    std::vector<Grant> grants;
-    std::function<void(EffectCtx&)> custom;  // escape hatch for anything else
+    DamageScale damage = DamageScale::None;  /**< How the action's damage is scaled; None deals no damage. */
+    std::vector<ApplyCondition> conditions;  /**< Conditions applied. */
+    std::vector<ApplyModifier> modifiers;    /**< Modifiers applied. */
+    std::vector<SetCounter> counters;        /**< Counters set or cleared. */
+    HealSpec heal;                           /**< Healing rolled. */
+    std::vector<Grant> grants;               /**< Actions allies take right away. */
+    std::function<void(EffectCtx&)> custom;  /**< Escape hatch for anything else. */
 };
 
+/**
+ * @brief   An action, spell or activity, described as data.
+ * @details The engine reads it to roll the check and apply the outcome of each degree. See the factories in
+ *          content/Actions.h.
+ */
 struct Action
 {
-    std::string name;
-    int cost = 1;           // actions spent (0 = free)
-    bool reaction = false;  // uses the actor's reaction instead of actions
-    CheckSpec check;
-    std::array<Outcome, kDegrees> outcomes;  // indexed by Degree of the rolled check
-    std::vector<DamageComponent> damage;     // base damage roll
-    std::vector<DamageComponent> critDamage; // used instead of `damage` when doubled (fatal/deadly); may be empty
-    Tags damageTags = 0;                     // for damage bonuses/penalties (Courageous Anthem, enfeebled)
-    std::optional<Weapon> weapon;            // set for Strikes: character Features hook into these
-    std::set<std::string> traits;            // "mental", "fear", ... (enemy immunities negate the action)
-    std::string allyTarget;                  // name of the ally for Who::Ally effects
-    std::function<bool(const BattleState&, int actor, int ally)> usable;  // optional: false -> no effect
-    // Frequency-limited (Spellstrike "until recharged"): skipped while the actor has this
-    // counter, and taking the action sets it. Clear the counter to recharge.
+    std::string name;       /**< Name shown in reports. */
+    int cost = 1;           /**< Actions spent (0 = free). */
+    bool reaction = false;  /**< Uses the actor's reaction instead of actions. */
+    CheckSpec check;        /**< What is rolled. */
+    std::array<Outcome, kDegrees> outcomes;  /**< Indexed by Degree of the rolled check. */
+    std::vector<DamageComponent> damage;     /**< Base damage roll. */
+    std::vector<DamageComponent> critDamage; /**< Used instead of `damage` when doubled (fatal/deadly); may be empty. */
+    Tags damageTags = 0;                     /**< For damage bonuses/penalties (Courageous Anthem, enfeebled). */
+    std::optional<Weapon> weapon;            /**< Set for Strikes: character Features hook into these. */
+    std::set<std::string> traits;            /**< "mental", "fear", ... (enemy immunities negate the action). */
+    std::string allyTarget;                  /**< Name of the ally for Who::Ally effects. */
+
+    /**
+     * @brief   Optional precondition; when it returns false, the action is spent but has no effect.
+     * @details Called with the state before the roll, the actor's index and the ally's index (-1 if none).
+     */
+    std::function<bool(const BattleState&, int actor, int ally)> usable;
+
+    /**
+     * @brief   Counter that marks a frequency-limited action as spent (Spellstrike "until recharged").
+     * @details The action is skipped while the actor has this counter, and taking it sets the counter. Clear
+     *          the counter to recharge.
+     */
     std::string spentFlag;
-    // Resolved together with this action; its damage joins this action's damage as one
-    // instance for resistances and weaknesses. Its heal and grants are ignored.
+
+    /**
+     * @brief   A second action resolved together with this one (Spellstrike's spell).
+     * @details Its damage joins this action's damage as one instance for resistances and weaknesses. Its heal
+     *          and grants are ignored.
+     */
     std::optional<CoupledEffect> coupled;
 };
 
+/**
+ * @brief   The creatures in a scenario: one enemy and the party.
+ */
 struct Encounter
 {
-    Monster enemy;
-    std::vector<Character> party;  // party[i] is creature i + 1
+    Monster enemy;                 /**< The enemy (creature kEnemy). */
+    std::vector<Character> party;  /**< party[i] is creature i + 1. */
 
+    /**
+     * @brief   A party member by creature index.
+     * @param   [in] creature - Creature index, 1 or more.
+     * @return  The character.
+     * @throws  std::out_of_range if there is no such party member.
+     */
     const Character& character(int creature) const { return party.at(creature - 1); }
+
+    /**
+     * @brief   The creature index of a party member.
+     * @param   [in] name - The character's name.
+     * @return  The index (1 for the first party member).
+     * @throws  std::runtime_error if no party member has that name.
+     */
     int indexOf(const std::string& name) const;
 };
 
-// Passed to features and custom hooks for one outcome branch.
+/**
+ * @brief   Passed to features and custom hooks for one outcome branch.
+ */
 struct EffectCtx
 {
-    const Encounter& enc;
-    const Action& action;
-    Degree degree;
-    const BattleState& before;  // state when the check was rolled (read this for conditions)
-    BattleState& state;         // state being built for this branch (write effects here)
-    int actor;
-    std::vector<DamageComponent>* damage;  // non-null while computing a damaging outcome
+    const Encounter& enc;       /**< The creatures in the scenario. */
+    const Action& action;       /**< The action being resolved. */
+    Degree degree;              /**< The degree of success of this branch. */
+    const BattleState& before;  /**< State when the check was rolled (read this for conditions). */
+    BattleState& state;         /**< State being built for this branch (write effects here). */
+    int actor;                  /**< Index of the creature doing the action. */
+    std::vector<DamageComponent>* damage;  /**< Non-null while computing a damaging outcome. */
 
+    /**
+     * @brief   The character doing the action.
+     * @return  The actor's character sheet.
+     */
     const Character& actorCharacter() const { return enc.character(actor); }
+
+    /**
+     * @brief   Whether the enemy was off-guard to this action when it was rolled.
+     * @return  True if the enemy counted as off-guard to the actor's attack.
+     */
     bool enemyOffGuard() const
     {
         return before.isOffGuardTo(kEnemy, actor, action.check.tags);
     }
 };
 
-// Read-only view for adaptive plans.
+/**
+ * @brief   Read-only view for adaptive plans.
+ */
 struct View
 {
-    const Encounter& enc;
-    const BattleState& state;
-    int actor;
+    const Encounter& enc;      /**< The creatures in the scenario. */
+    const BattleState& state;  /**< The state of the branch the choice is made in. */
+    int actor;                 /**< Index of the creature choosing. */
 
+    /**
+     * @brief   The value of a condition on the enemy.
+     * @param   [in] k - The condition.
+     * @return  Its value, or 0 if the enemy doesn't have it.
+     */
     int enemyCondition(ConditionKind k) const { return state.conditionValue(kEnemy, k); }
+
+    /**
+     * @brief   Whether the enemy is off-guard to the actor's attacks.
+     * @param   [in] melee - True to check melee attacks, false for ranged ones.
+     * @return  True if the enemy counts as off-guard to the actor.
+     */
     bool enemyOffGuardToMe(bool melee = true) const
     {
         return state.isOffGuardTo(kEnemy, actor, melee ? Tag::Melee : Tag::Ranged);
     }
+
+    /**
+     * @brief   Actions the actor has left this turn.
+     * @return  The number of actions.
+     */
     int actionsLeft() const { return state.actionsLeft(actor); }
+
+    /**
+     * @brief   A counter on the actor.
+     * @param   [in] name - Counter name.
+     * @return  Its value, or 0 if it isn't set.
+     */
     int counter(const std::string& name) const { return state.counter(actor, name); }
 };
 
-// One entry of a turn: either a fixed action or a choice made per branch.
+/**
+ * @brief   One entry of a turn: either a fixed action or a choice made per branch.
+ */
 struct Step
 {
-    ActionPtr action;
-    std::function<ActionPtr(const View&)> chooser;
+    ActionPtr action;                               /**< The fixed action, or null for a choice. */
+    std::function<ActionPtr(const View&)> chooser;  /**< Picks the action per branch, or returns null to do nothing. */
 
+    /**
+     * @brief   A fixed action.
+     * @details Implicit, so a turn can be written as a list of actions.
+     * @param   [in] a - The action.
+     */
     Step(ActionPtr a) : action(std::move(a)) {}
+
+    /**
+     * @brief   A choice made separately in each branch.
+     * @details Implicit, like the other constructor.
+     * @param   [in] c - Returns the action to take given the branch, or null to do nothing.
+     */
     Step(std::function<ActionPtr(const View&)> c) : chooser(std::move(c)) {}
 };
 
+/**
+ * @brief   A step that picks its action separately in each branch (adaptive plans).
+ * @code
+ * choose([&](const View& v) { return v.enemyOffGuardToMe() ? strike(rogue, "Rapier") : feint(rogue); })
+ * @endcode
+ * @param   [in] chooser - Returns the action to take given the branch, or null to do nothing.
+ * @return  The step.
+ */
 inline Step choose(std::function<ActionPtr(const View&)> chooser) { return Step(std::move(chooser)); }

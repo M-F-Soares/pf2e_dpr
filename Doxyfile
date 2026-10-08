@@ -1,0 +1,30 @@
+# Doxygen configuration (`make docs`). Only non-default options are listed.
+
+PROJECT_NAME           = "PF2e DPR Calculator"
+PROJECT_BRIEF          = "Exact expected damage and healing of a Pathfinder 2e party round"
+OUTPUT_DIRECTORY       = build/docs
+
+INPUT                  = README.md src examples tests
+RECURSIVE              = YES
+FILE_PATTERNS          = *.h *.cpp *.md
+EXCLUDE                = tests/vendor
+USE_MDFILE_AS_MAINPAGE = README.md
+# Heading anchors like GitHub's, so the README's #rulings link works.
+MARKDOWN_ID_STYLE      = GITHUB
+
+# Blocks use explicit @brief; this makes trailing /**< ... */ member comments briefs too.
+JAVADOC_AUTOBRIEF      = YES
+EXTRACT_PRIVATE        = YES
+EXTRACT_STATIC         = YES
+EXTRACT_ANON_NSPACES   = YES
+
+# doctest's TEST_CASE blocks aren't API; hide them from the parser.
+MACRO_EXPANSION        = YES
+EXPAND_ONLY_PREDEF     = YES
+PREDEFINED             = "TEST_CASE(name)=static void doctest_test_case()"
+EXCLUDE_SYMBOLS        = doctest_test_case
+
+WARN_IF_UNDOCUMENTED   = YES
+WARN_NO_PARAMDOC       = YES
+QUIET                  = YES
+GENERATE_LATEX         = NO

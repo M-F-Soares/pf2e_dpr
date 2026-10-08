@@ -1,3 +1,8 @@
+/**
+ * @file    Creature.cpp
+ * @brief   Skill attributes, defense tags, and character and monster lookups.
+ */
+
 #include "Creature.h"
 
 #include <stdexcept>

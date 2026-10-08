@@ -1,3 +1,8 @@
+/**
+ * @file    Damage.cpp
+ * @brief   Exact expected damage after immunities, weaknesses and resistances.
+ */
+
 #include "Damage.h"
 
 #include <algorithm>
@@ -50,11 +55,25 @@ DamageComponent persistent(int count, int die, int flat, DamageType type)
 
 namespace
 {
+/**
+ * @brief   Whether a resistance or weakness entry applies to a damage type.
+ * @param   [in] entry - The type the resistance or weakness names (may be Physical or All).
+ * @param   [in] actual - The type of the damage.
+ * @return  True if @p entry is @p actual, All, or Physical for a physical type.
+ */
 bool covers(DamageType entry, DamageType actual)
 {
     return entry == actual || entry == DamageType::All || (entry == DamageType::Physical && isPhysical(actual));
 }
 
+/**
+ * @brief   The highest resistance (or weakness) that applies to a damage type.
+ * @param   [in] list - The resistances or weaknesses.
+ * @param   [in] type - The type of the damage.
+ * @param   [in] attackTraits - Traits and materials of the attack; entries whose `except` names one are
+ *          skipped.
+ * @return  The highest value, or 0 if none applies.
+ */
 int highestApplicable(const std::vector<Resistance>& list, DamageType type, const std::set<std::string>& attackTraits)
 {
     int best = 0;

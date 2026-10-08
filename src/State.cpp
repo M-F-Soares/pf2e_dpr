@@ -1,3 +1,8 @@
+/**
+ * @file    State.cpp
+ * @brief   Queries and updates on the battle state of one branch.
+ */
+
 #include "State.h"
 
 #include <algorithm>

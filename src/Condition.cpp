@@ -1,3 +1,8 @@
+/**
+ * @file    Condition.cpp
+ * @brief   The modifiers and action changes of each condition.
+ */
+
 #include "Condition.h"
 
 const char* toString(ConditionKind k)
@@ -26,11 +31,23 @@ const char* toString(ConditionKind k)
 
 namespace
 {
+/**
+ * @brief   A status penalty named after the condition.
+ * @param   [in] k - The condition (its name is the modifier's source).
+ * @param   [in] value - The condition value; the penalty is -value.
+ * @param   [in] s - The rolls it applies to.
+ * @return  The modifier.
+ */
 Modifier statusPenalty(ConditionKind k, int value, Selector s)
 {
     return Modifier{toString(k), BonusType::Status, -value, std::move(s)};
 }
 
+/**
+ * @brief   The -2 circumstance penalty to AC that also makes the holder count as off-guard.
+ * @param   [in] source - Name of the modifier.
+ * @return  The modifier.
+ */
 Modifier offGuard(const char* source)
 {
     return Modifier{source, BonusType::Circumstance, -2, select({Tag::AC}), -1, true};

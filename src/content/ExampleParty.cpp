@@ -1,3 +1,8 @@
+/**
+ * @file    ExampleParty.cpp
+ * @brief   Sheet numbers of the sample characters and enemy.
+ */
+
 #include "ExampleParty.h"
 
 #include "Actions.h"

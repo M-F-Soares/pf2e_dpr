@@ -5,6 +5,7 @@ Computes the **exact expected damage and healing of a full party round** in Path
 ```
 make run    # example: which ranger/bard/rogue plan deals the most damage?
 make test   # unit tests (doctest)
+make docs   # API reference in build/docs/html (needs doxygen)
 ```
 
 ## How it works

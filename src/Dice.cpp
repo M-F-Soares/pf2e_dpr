@@ -1,3 +1,8 @@
+/**
+ * @file    Dice.cpp
+ * @brief   Construction and arithmetic of exact dice distributions.
+ */
+
 #include "Dice.h"
 
 #include <algorithm>

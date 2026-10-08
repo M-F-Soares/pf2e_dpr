@@ -1,3 +1,9 @@
+/**
+ * @file    test_engine.cpp
+ * @brief   End-to-end tests of the engine, the built-in actions and the magus's Spellstrike.
+ * @details Results are checked against hand calculations.
+ */
+
 #include "vendor/doctest.h"
 
 #include "../src/Scenario.h"
@@ -7,10 +13,17 @@
 
 namespace
 {
-constexpr int S = static_cast<int>(Degree::Success);
-constexpr int CS = static_cast<int>(Degree::CritSuccess);
+constexpr int S = static_cast<int>(Degree::Success);       /**< Index of a success in a DegreeDist. */
+constexpr int CS = static_cast<int>(Degree::CritSuccess);  /**< Index of a critical success in a DegreeDist. */
 
-// +attack, 1d8+4 slashing (hit 8.5, crit 17).
+/**
+ * @brief   Test character with a finesse sword (1d8+4 slashing: hit 8.5, crit 17).
+ * @details Intimidation, Deception and Medicine at +10, and spell DC 25.
+ * @param   [in] name - Character name.
+ * @param   [in] attack - Sword attack bonus.
+ * @param   [in] agile - Whether the sword is agile.
+ * @return  The character.
+ */
 Character fighter(const std::string& name = "Fighter", int attack = 23, bool agile = false)
 {
     Character c;
@@ -29,6 +42,11 @@ Character fighter(const std::string& name = "Fighter", int attack = 23, bool agi
     return c;
 }
 
+/**
+ * @brief   Test enemy: level 5, every save and Perception at +10 (DC 20), no defenses.
+ * @param   [in] ac - Armor Class.
+ * @return  The monster.
+ */
 Monster dummy(int ac = 30)
 {
     Monster m;
@@ -39,6 +57,15 @@ Monster dummy(int ac = 30)
     return m;
 }
 
+/**
+ * @brief   Expected damage of one Strike, by hand: P(hit) x hit damage + P(crit) x crit damage.
+ * @param   [in] mod - Attack modifier.
+ * @param   [in] ac - Target AC.
+ * @param   [in] hit - Expected damage on a hit.
+ * @param   [in] crit - Expected damage on a critical hit.
+ * @param   [in] f - Fortune state of the attack roll.
+ * @return  The expected damage.
+ */
 double strikeEV(int mod, int ac, double hit = 8.5, double crit = 17.0, Fortune f = Fortune::None)
 {
     DegreeDist d = resolveCheck(mod, ac, f);
@@ -237,7 +264,11 @@ TEST_CASE("engine: adaptive step chooses per branch")
 
 namespace
 {
-// Automatic (no check) drained N on the enemy.
+/**
+ * @brief   Automatic (no check) drained N on the enemy.
+ * @param   [in] value - The drained value.
+ * @return  The action.
+ */
 ActionPtr drain(int value)
 {
     auto a = std::make_shared<Action>();
@@ -246,6 +277,12 @@ ActionPtr drain(int value)
     return a;
 }
 
+/**
+ * @brief   Drained HP loss credited to a character by drain().
+ * @param   [in] r - The run's result.
+ * @param   [in] who - Character name.
+ * @return  The expected HP loss, or 0 if there is no such ledger line.
+ */
 double drainedLoss(const RunResult& r, const std::string& who)
 {
     auto it = r.ledger.damage.find({who, "Drain (drained HP loss)"});
@@ -316,7 +353,10 @@ TEST_CASE("engine: drained from a save is weighted by the enemy's degree")
 
 namespace
 {
-// Sword Strike at +23 (1d8+4), spell attack +21 (Int), and a 2-action 2d6 fire spell attack (hit 7, crit 14).
+/**
+ * @brief   Test magus: Sword Strike at +23 (1d8+4) and spell attack +21 (Int).
+ * @return  The character.
+ */
 Character magus()
 {
     Character c = fighter("Magus");
@@ -325,6 +365,11 @@ Character magus()
     return c;
 }
 
+/**
+ * @brief   A 2-action 2d6 fire spell attack (hit 7, crit 14).
+ * @param   [in] caster - The caster.
+ * @return  The spell.
+ */
 ActionPtr fireRay(const Character& caster)
 {
     return spellAttackSpell(caster, "Fire Ray", 2, {dmg(2, 6, 0, DamageType::Fire)});
@@ -465,7 +510,12 @@ TEST_CASE("magus: Spellstrike only takes 1- or 2-action spells with an attack ro
 
 namespace
 {
-// 30 fire on a hit, 60 on a crit: flat damage keeps the resistance math exact.
+/**
+ * @brief   30 fire on a hit, 60 on a crit: flat damage keeps the resistance math exact.
+ * @param   [in] caster - The caster.
+ * @param   [in] extra - More damage components for the spell.
+ * @return  The spell.
+ */
 ActionPtr flameLance(const Character& caster, std::vector<DamageComponent> extra = {})
 {
     std::vector<DamageComponent> damage = {dmg(0, 0, 30, DamageType::Fire)};
@@ -473,6 +523,10 @@ ActionPtr flameLance(const Character& caster, std::vector<DamageComponent> extra
     return spellAttackSpell(caster, "Flame Lance", 2, damage);
 }
 
+/**
+ * @brief   The test magus at level 12, the level Overwhelming Spellstrike becomes available.
+ * @return  The character.
+ */
 Character level12Magus()
 {
     Character m = magus();

@@ -1,3 +1,8 @@
+/**
+ * @file    Check.cpp
+ * @brief   Degree of success rules and exact d20 distributions.
+ */
+
 #include "Check.h"
 
 #include <algorithm>

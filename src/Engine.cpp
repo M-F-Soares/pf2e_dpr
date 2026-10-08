@@ -1,3 +1,8 @@
+/**
+ * @file    Engine.cpp
+ * @brief   Branching resolution of turns, actions, checks and outcomes.
+ */
+
 #include "Engine.h"
 
 #include <algorithm>
@@ -6,6 +11,11 @@
 
 namespace
 {
+/**
+ * @brief   Sum of the values of a ledger map.
+ * @param   [in] m - The map.
+ * @return  The total.
+ */
 double sum(const std::map<LedgerKey, double>& m)
 {
     double total = 0.0;
@@ -14,10 +24,22 @@ double sum(const std::map<LedgerKey, double>& m)
     return total;
 }
 
+/**
+ * @brief   Matches every roll; for modifiers that come from the roll itself (item bonus, MAP...).
+ */
 const Selector kEverything = select({0});
 
-// Pending fortune/misfortune counters ("fortune:attack", "misfortune:save",
-// "fortune:check"...) on the roller are consumed by its next matching roll.
+/**
+ * @brief   Fortune state of a roll, using up the roller's pending fortune and misfortune counters.
+ * @details Pending fortune/misfortune counters ("fortune:attack", "misfortune:save", "fortune:check"...) on
+ *          the roller are consumed by its next matching roll.
+ * @param   [in] before - The state when the roll is made.
+ * @param   [in, out] after - Loses the counters that were used.
+ * @param   [in] roller - Index of the creature rolling.
+ * @param   [in] rollKind - "attack", "save", "skill" or "check"; "check" counters match every roll.
+ * @param   [in] actionFortune - Whether the action itself grants fortune.
+ * @return  The roll's fortune state.
+ */
 Fortune takeFortune(const BattleState& before, BattleState& after, int roller, const std::string& rollKind,
                     bool actionFortune)
 {
@@ -38,6 +60,12 @@ Fortune takeFortune(const BattleState& before, BattleState& after, int roller, c
     return combineFortune(fortune, misfortune);
 }
 
+/**
+ * @brief   The multiple attack penalty.
+ * @param   [in] attacksMade - Attacks already made this turn.
+ * @param   [in] agile - Whether the attack is agile.
+ * @return  0, then -5 (agile -4), then -10 (agile -8) from the third attack on.
+ */
 int multipleAttackPenalty(int attacksMade, bool agile)
 {
     if (attacksMade == 0)

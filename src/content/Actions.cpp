@@ -1,3 +1,8 @@
+/**
+ * @file    Actions.cpp
+ * @brief   Factories for the ready-made actions, spells and class features.
+ */
+
 #include "Actions.h"
 
 #include <algorithm>
@@ -5,11 +10,17 @@
 
 namespace
 {
-constexpr int CF = static_cast<int>(Degree::CritFail);
-constexpr int F = static_cast<int>(Degree::Fail);
-constexpr int S = static_cast<int>(Degree::Success);
-constexpr int CS = static_cast<int>(Degree::CritSuccess);
+constexpr int CF = static_cast<int>(Degree::CritFail);    /**< Action::outcomes index of a critical failure. */
+constexpr int F = static_cast<int>(Degree::Fail);         /**< Action::outcomes index of a failure. */
+constexpr int S = static_cast<int>(Degree::Success);      /**< Action::outcomes index of a success. */
+constexpr int CS = static_cast<int>(Degree::CritSuccess); /**< Action::outcomes index of a critical success. */
 
+/**
+ * @brief   A new, empty action.
+ * @param   [in] name - Action name.
+ * @param   [in] cost - Actions spent.
+ * @return  The action, still mutable.
+ */
 std::shared_ptr<Action> make(std::string name, int cost)
 {
     auto a = std::make_shared<Action>();
@@ -18,6 +29,14 @@ std::shared_ptr<Action> make(std::string name, int cost)
     return a;
 }
 
+/**
+ * @brief   Makes an action a skill check against one of the enemy's DCs.
+ * @param   [in, out] a - The action.
+ * @param   [in] c - The character rolling.
+ * @param   [in] skill - The skill.
+ * @param   [in] vs - The enemy defense used as the DC.
+ * @throws  std::runtime_error if @p c has no modifier for @p skill.
+ */
 void skillCheck(Action& a, const Character& c, Skill skill, Defense vs)
 {
     a.check.kind = CheckKind::Attack;
@@ -26,18 +45,35 @@ void skillCheck(Action& a, const Character& c, Skill skill, Defense vs)
     a.check.defense = vs;
 }
 
-// The damage types whose resistance Overwhelming Spellstrike ignores.
+/**
+ * @brief   The damage types whose resistance Overwhelming Spellstrike ignores.
+ * @param   [in] t - The damage type.
+ * @return  True for acid, cold, electricity, fire and sonic.
+ */
 bool overwhelmingAffects(DamageType t)
 {
     return t == DamageType::Acid || t == DamageType::Cold || t == DamageType::Electricity ||
            t == DamageType::Fire || t == DamageType::Sonic;
 }
 
+/**
+ * @brief   Tags of a character's spell DC.
+ * @param   [in] c - The caster.
+ * @return  DC, Spell and the caster's key attribute.
+ */
 Tags spellDCTags(const Character& c)
 {
     return Tag::DC | Tag::Spell | attributeTag(c.keyAttribute);
 }
 
+/**
+ * @brief   A status bonus for the round.
+ * @param   [in] to - Who gets it.
+ * @param   [in] source - Name of the effect.
+ * @param   [in] value - The bonus.
+ * @param   [in] s - The rolls it applies to.
+ * @return  The modifier to apply.
+ */
 ApplyModifier allyBonus(Who to, const std::string& source, int value, Selector s)
 {
     return ApplyModifier{to, Modifier{source, BonusType::Status, value, std::move(s)}, forTheRound()};

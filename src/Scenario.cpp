@@ -1,3 +1,8 @@
+/**
+ * @file    Scenario.cpp
+ * @brief   Scenario building and running, and the text reports.
+ */
+
 #include "Scenario.h"
 
 #include <algorithm>
@@ -89,6 +94,12 @@ RunResult Scenario::run() const
 
 namespace
 {
+/**
+ * @brief   Formats a number with a fixed number of decimals.
+ * @param   [in] v - The number.
+ * @param   [in] precision - Decimals to show.
+ * @return  The formatted number.
+ */
 std::string fixed(double v, int precision = 2)
 {
     std::ostringstream ss;

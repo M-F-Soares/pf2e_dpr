@@ -1,10 +1,18 @@
-// "Is it better for the ranger to Strike 3 times, or to spend actions setting
-// up the rest of the party?" -- one full round against a sample level 5 brute.
+/**
+ * @file    main.cpp
+ * @brief   Example program (`make run`).
+ * @details "Is it better for the ranger to Strike 3 times, or to spend actions setting up the rest of the
+ *          party?" -- one full round against a sample level 5 brute.
+ */
 
 #include "../src/Scenario.h"
 #include "../src/content/Actions.h"
 #include "../src/content/ExampleParty.h"
 
+/**
+ * @brief   Compares five plans for the sample party's round and prints the reports and the ranking.
+ * @return  0.
+ */
 int main()
 {
     Character ranger = exampleRanger();

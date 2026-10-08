@@ -1,3 +1,8 @@
+/**
+ * @file    Creature.h
+ * @brief   Party members, the enemy, their weapons, and the defenses checks target.
+ */
+
 #pragma once
 
 #include "Damage.h"
@@ -9,104 +14,166 @@
 #include <string>
 #include <vector>
 
+/**
+ * @brief   Skills, each tied to the attribute in skillAttribute().
+ */
 enum class Skill
 {
-    Acrobatics,
-    Arcana,
-    Athletics,
-    Crafting,
-    Deception,
-    Diplomacy,
-    Intimidation,
-    Medicine,
-    Nature,
-    Occultism,
-    Performance,
-    Religion,
-    Society,
-    Stealth,
-    Survival,
-    Thievery,
+    Acrobatics,    /**< Acrobatics (Dex). */
+    Arcana,        /**< Arcana (Int). */
+    Athletics,     /**< Athletics (Str): Trip, Grapple. */
+    Crafting,      /**< Crafting (Int). */
+    Deception,     /**< Deception (Cha): Feint. */
+    Diplomacy,     /**< Diplomacy (Cha). */
+    Intimidation,  /**< Intimidation (Cha): Demoralize. */
+    Medicine,      /**< Medicine (Wis): Battle Medicine. */
+    Nature,        /**< Nature (Wis). */
+    Occultism,     /**< Occultism (Int). */
+    Performance,   /**< Performance (Cha). */
+    Religion,      /**< Religion (Wis). */
+    Society,       /**< Society (Int). */
+    Stealth,       /**< Stealth (Dex). */
+    Survival,      /**< Survival (Wis). */
+    Thievery,      /**< Thievery (Dex). */
 };
 
+/**
+ * @brief   The attribute a skill is based on (which conditions like clumsy affect it).
+ * @param   [in] s - The skill.
+ * @return  Its attribute, or Attribute::None for an out-of-range value.
+ */
 Attribute skillAttribute(Skill s);
 
+/**
+ * @brief   A defense of the enemy that a check targets or that the enemy rolls.
+ */
 enum class Defense
 {
-    AC,
-    Fort,
-    Ref,
-    Will,
-    Perception,
+    AC,          /**< Armor Class. */
+    Fort,        /**< Fortitude. */
+    Ref,         /**< Reflex. */
+    Will,        /**< Will. */
+    Perception,  /**< Perception. */
 };
 
-// Tags for the defender rolling a save/Perception check, and for the defense used as a DC.
+/**
+ * @brief   Tags for the defender rolling a save/Perception check, and for the defense used as a DC.
+ * @param   [in] d - The defense being rolled.
+ * @return  Save/Perception, Check, the defense and its attribute (AC gets its DC tags).
+ */
 Tags defenseRollTags(Defense d);
+
+/**
+ * @brief   Tags for a defense used as a DC (AC, Will DC, ...).
+ * @param   [in] d - The defense.
+ * @return  DC, the defense and its attribute.
+ */
 Tags defenseDCTags(Defense d);
 
 struct EffectCtx;
 
-// A passive class feature that changes Strike damage (Sneak Attack, Precision edge...).
-// It runs once per damaging outcome and may append damage components or set counters.
+/**
+ * @brief   A passive class feature that changes Strike damage (Sneak Attack, Precision edge...).
+ * @details It runs once per damaging outcome and may append damage components or set counters.
+ */
 struct Feature
 {
-    std::string name;
+    std::string name;  /**< Name of the feature. */
+
+    /**
+     * @brief   Called for each damaging outcome of a Strike.
+     * @details EffectCtx::damage points to the damage being built, and EffectCtx::state can be changed (e.g.
+     *          to mark a once-per-round use).
+     */
     std::function<void(EffectCtx&)> onStrikeDamage;
 };
 
-// Numbers are the totals from the character sheet.
+/**
+ * @brief   A weapon on a character sheet.
+ * @details Numbers are the totals from the character sheet.
+ */
 struct Weapon
 {
-    std::string name;
-    int attack = 0;   // total attack bonus, potency rune included
-    int potency = 0;  // item bonus inside `attack` (so it doesn't stack with other item bonuses)
-    int dice = 1;     // 1 + striking rune
-    int die = 6;
-    DamageType type = DamageType::Slashing;
-    int flat = 0;     // attribute + weapon specialization + other always-on flat damage
-    bool ranged = false;
-    bool agile = false;
-    bool finesse = false;
-    Attribute attackAttribute = Attribute::Str;
-    bool strengthToDamage = true;  // tags the damage roll as Str-based (enfeebled)
-    int deadly = 0;                // deadly die size (0 = none)
-    int fatal = 0;                 // fatal die size (0 = none)
-    std::vector<DamageComponent> onHit;  // property runes, e.g. flaming 1d6 fire
-    std::vector<DamageComponent> onCrit; // crit-only riders, e.g. flaming 1d10 persistent fire
-    std::set<std::string> traits;        // materials/traits that bypass resistances ("silver", "cold-iron")
+    std::string name;  /**< Name used to pick the weapon, e.g. in strike(). */
+    int attack = 0;   /**< Total attack bonus, potency rune included. */
+    int potency = 0;  /**< Item bonus inside `attack` (so it doesn't stack with other item bonuses). */
+    int dice = 1;     /**< 1 + striking rune. */
+    int die = 6;      /**< Weapon damage die size. */
+    DamageType type = DamageType::Slashing;  /**< Weapon damage type. */
+    int flat = 0;     /**< Attribute + weapon specialization + other always-on flat damage. */
+    bool ranged = false;   /**< Ranged weapon (its attacks are tagged Ranged instead of Melee). */
+    bool agile = false;    /**< Agile trait: -4/-8 multiple attack penalty instead of -5/-10. */
+    bool finesse = false;  /**< Finesse trait (Sneak Attack works with it). */
+    Attribute attackAttribute = Attribute::Str;  /**< Attribute of the attack roll (clumsy, enfeebled). */
+    bool strengthToDamage = true;  /**< Tags the damage roll as Str-based (enfeebled). */
+    int deadly = 0;                /**< Deadly die size (0 = none). */
+    int fatal = 0;                 /**< Fatal die size (0 = none). */
+    std::vector<DamageComponent> onHit;   /**< Property runes, e.g. flaming 1d6 fire. */
+    std::vector<DamageComponent> onCrit;  /**< Crit-only riders, e.g. flaming 1d10 persistent fire. */
+    std::set<std::string> traits;  /**< Materials/traits that bypass resistances ("silver", "cold-iron"). */
 };
 
+/**
+ * @brief   A party member, with the totals from their character sheet.
+ */
 struct Character
 {
-    std::string name;
-    int level = 1;
-    int maxHP = 10;
-    int hpMissing = 0;  // damage already taken when the round starts (for effective healing)
-    int spellAttack = 0;
-    int spellDC = 10;
-    int classDC = 10;
-    Attribute keyAttribute = Attribute::None;  // spellcasting / class DC attribute
-    std::map<Skill, int> skills;
-    std::vector<Weapon> weapons;
-    std::vector<Feature> features;
+    std::string name;  /**< Unique name in the party; identifies the character in turns and reports. */
+    int level = 1;     /**< Character level. */
+    int maxHP = 10;    /**< Maximum Hit Points (for reference; the engine only tracks missing HP). */
+    int hpMissing = 0;  /**< Damage already taken when the round starts (for effective healing). */
+    int spellAttack = 0;  /**< Spell attack modifier. */
+    int spellDC = 10;     /**< Spell DC. */
+    int classDC = 10;     /**< Class DC (for reference; no built-in action uses it). */
+    Attribute keyAttribute = Attribute::None;  /**< Spellcasting / class DC attribute. */
+    std::map<Skill, int> skills;  /**< Skill modifiers; a skill that's missing can't be used. */
+    std::vector<Weapon> weapons;  /**< Weapons, picked by name. */
+    std::vector<Feature> features;  /**< Passive features applied to this character's Strikes. */
 
+    /**
+     * @brief   The modifier for a skill.
+     * @param   [in] s - The skill.
+     * @return  The total modifier.
+     * @throws  std::runtime_error if no modifier is set for @p s.
+     */
     int skill(Skill s) const;
+
+    /**
+     * @brief   A weapon by name.
+     * @param   [in] weaponName - The weapon's Weapon::name.
+     * @return  The weapon.
+     * @throws  std::runtime_error if the character has no weapon with that name.
+     */
     const Weapon& weapon(const std::string& weaponName) const;
 };
 
+/**
+ * @brief   The enemy, with the numbers from its stat block.
+ */
 struct Monster
 {
-    std::string name;
-    int level = 1;
-    int ac = 10;
-    int fort = 0;
-    int ref = 0;
-    int will = 0;
-    int perception = 0;
-    int hp = 0;
-    std::set<std::string> traits;
-    DamageDefenses defenses;  // immunities may also name traits ("mental", "fear") or conditions ("frightened")
+    std::string name;    /**< Name shown in reports. */
+    int level = 1;       /**< Creature level (incapacitation, drained HP loss). */
+    int ac = 10;         /**< Armor Class. */
+    int fort = 0;        /**< Fortitude modifier. */
+    int ref = 0;         /**< Reflex modifier. */
+    int will = 0;        /**< Will modifier. */
+    int perception = 0;  /**< Perception modifier. */
+    int hp = 0;          /**< Hit Points (for reference; not used by the engine). */
+    std::set<std::string> traits;  /**< Creature traits (for reference; not used by the engine). */
+    DamageDefenses defenses;  /**< Immunities may also name traits ("mental", "fear") or conditions ("frightened"). */
 
-    int defenseValue(Defense d) const;  // AC, or the save/Perception modifier
-    int defenseDC(Defense d) const;     // AC, or 10 + modifier
+    /**
+     * @brief   The value of a defense.
+     * @param   [in] d - The defense.
+     * @return  AC, or the save/Perception modifier.
+     */
+    int defenseValue(Defense d) const;
+
+    /**
+     * @brief   A defense as a DC.
+     * @param   [in] d - The defense.
+     * @return  AC, or 10 + modifier.
+     */
+    int defenseDC(Defense d) const;
 };

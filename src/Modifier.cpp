@@ -1,3 +1,8 @@
+/**
+ * @file    Modifier.cpp
+ * @brief   Selector matching and PF2e bonus/penalty stacking.
+ */
+
 #include "Modifier.h"
 
 #include <algorithm>

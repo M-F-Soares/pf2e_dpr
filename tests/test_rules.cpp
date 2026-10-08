@@ -1,3 +1,8 @@
+/**
+ * @file    test_rules.cpp
+ * @brief   Unit tests for the rules building blocks: checks, stacking, conditions and damage.
+ */
+
 #include "vendor/doctest.h"
 
 #include "../src/Check.h"
@@ -7,6 +12,12 @@
 
 namespace
 {
+/**
+ * @brief   The probability of one degree in a distribution.
+ * @param   [in] d - The distribution.
+ * @param   [in] g - The degree.
+ * @return  Its probability.
+ */
 double at(const DegreeDist& d, Degree g) { return d[static_cast<int>(g)]; }
 } // namespace
 
