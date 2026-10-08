@@ -197,7 +197,7 @@ struct Outcome
 /**
  * @brief   An action, spell or activity, described as data.
  * @details The engine reads it to roll the check and apply the outcome of each degree. See the factories in
- *          content/Actions.h.
+ *          Actions.h.
  */
 struct Action
 {

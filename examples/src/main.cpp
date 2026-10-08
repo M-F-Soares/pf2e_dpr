@@ -5,9 +5,9 @@
  *          party?" -- one full round against a sample level 5 brute.
  */
 
-#include "../src/Scenario.h"
-#include "../src/content/Actions.h"
-#include "../src/content/ExampleParty.h"
+#include "Scenario.h"
+#include "Actions.h"
+#include "ExampleParty.h"
 
 /**
  * @brief   Compares five plans for the sample party's round and prints the reports and the ranking.

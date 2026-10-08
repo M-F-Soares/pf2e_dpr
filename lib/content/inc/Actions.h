@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include "../Action.h"
+#include "Action.h"
 
 #include <string>
 #include <vector>

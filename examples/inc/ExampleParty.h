@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include "../Creature.h"
+#include "Creature.h"
 
 /**
  * @brief   Level 5 ranger with a composite longbow (deadly d10) and Precision edge.

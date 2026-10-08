@@ -76,14 +76,6 @@ int multipleAttackPenalty(int attacksMade, bool agile)
 }
 } // namespace
 
-int Encounter::indexOf(const std::string& name) const
-{
-    for (std::size_t i = 0; i < party.size(); ++i)
-        if (party[i].name == name)
-            return static_cast<int>(i) + 1;
-    throw std::runtime_error("no party member named " + name);
-}
-
 double Ledger::totalDamage() const { return sum(damage); }
 double Ledger::totalHealRaw() const { return sum(healRaw); }
 double Ledger::totalHealEffective() const { return sum(healEffective); }

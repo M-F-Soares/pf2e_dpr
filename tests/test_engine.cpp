@@ -6,8 +6,8 @@
 
 #include "vendor/doctest.h"
 
-#include "../src/Scenario.h"
-#include "../src/content/Actions.h"
+#include "Scenario.h"
+#include "Actions.h"
 
 #include <functional>
 

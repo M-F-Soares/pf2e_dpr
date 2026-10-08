@@ -5,10 +5,10 @@
 
 #include "vendor/doctest.h"
 
-#include "../src/Check.h"
-#include "../src/Condition.h"
-#include "../src/Damage.h"
-#include "../src/State.h"
+#include "Check.h"
+#include "Condition.h"
+#include "Damage.h"
+#include "State.h"
 
 namespace
 {
