@@ -1,5 +1,6 @@
 {
     "name": "Recharge Spellstrike",
+    "reference": "Impossible Magic",
     "cost": 1,
     "traits": ["concentrate"],
     "effects": [{"counter": "spellstrike-spent", "value": 0}]

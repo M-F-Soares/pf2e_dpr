@@ -17,13 +17,15 @@ constexpr int kSuccess = static_cast<int>(Degree::Success);          /**< Degree
 constexpr int kCritSuccess = static_cast<int>(Degree::CritSuccess);  /**< DegreeDist index: critical success. */
 
 /**
- * @brief   The project's content (data/) plus the test spells (tests/data/), loaded once.
+ * @brief   The project's hand-written content (data/, without a local import) plus the test spells
+ *          (tests/data/), loaded once.
  * @return  The library.
  */
 const ContentLibrary& Content()
 {
     static const ContentLibrary library = [] {
-        ContentLibrary content = ContentLibrary::Load("data");
+        ContentLibrary content;
+        content.AddDirectory("data", "data/imported");
         content.AddDirectory("tests/data");
         return content;
     }();

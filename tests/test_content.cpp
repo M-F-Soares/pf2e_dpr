@@ -22,12 +22,16 @@ constexpr int kSuccess = static_cast<int>(Degree::Success);          /**< Action
 constexpr int kCritSuccess = static_cast<int>(Degree::CritSuccess);  /**< Action::outcomes index: critical success. */
 
 /**
- * @brief   The project's data, loaded once.
+ * @brief   The project's hand-written data (without a local import), loaded once.
  * @return  The library.
  */
 const ContentLibrary& ProjectContent()
 {
-    static const ContentLibrary library = ContentLibrary::Load("data");
+    static const ContentLibrary library = [] {
+        ContentLibrary content;
+        content.AddDirectory("data", "data/imported");
+        return content;
+    }();
     return library;
 }
 
@@ -639,4 +643,14 @@ TEST_CASE("content: \"extends\" starts from an earlier entry, variants and all")
     CHECK(library.Use("Bigger Shove", fighter, {.variant = "heavy"})->cost == 3);
     CHECK(library.Use("Bigger Shove", fighter)->outcomes[kCritSuccess].conditions.size() == 2);
     CHECK(library.Use("Shove", fighter)->outcomes[kCritSuccess].conditions.empty());
+}
+
+TEST_CASE("content: a folder can be left out when loading a directory")
+{
+    ContentLibrary library;
+    library.AddDirectory("data", "data/actions");
+    std::vector<std::string> names = library.Names();
+    CHECK(std::find(names.begin(), names.end(), "Fear") != names.end());
+    CHECK(std::find(names.begin(), names.end(), "Demoralize") == names.end());
+    CHECK(std::find(names.begin(), names.end(), "Sneak Attack") != names.end());
 }

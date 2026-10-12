@@ -46,9 +46,11 @@ public:
     /**
      * @brief   Adds every definition under a directory: the `.json` files in it and its subdirectories.
      * @param   [in] directory - The directory.
+     * @param   [in] excludedFolder - A folder inside it to leave out, e.g. "data/imported" for only the
+     *          hand-written content; empty to leave nothing out.
      * @throws  ContentError if the directory is missing, or a definition is invalid or already defined.
      */
-    void AddDirectory(const std::string& directory);
+    void AddDirectory(const std::string& directory, const std::string& excludedFolder = "");
 
     /**
      * @brief   Adds the definitions in a JSON text.

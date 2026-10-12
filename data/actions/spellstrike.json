@@ -1,6 +1,7 @@
 [
     {
         "name": "Spellstrike",
+        "reference": "Impossible Magic",
         "displayName": "Spellstrike ({spell})",
         "cost": 2,
         "check": {"stat": "weapon"},

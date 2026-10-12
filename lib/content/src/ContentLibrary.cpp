@@ -26,6 +26,19 @@ std::string JoinNames(const std::vector<std::string>& names)
         text += (text.empty() ? "" : ", ") + name;
     return text;
 }
+
+/**
+ * @brief   Whether a path is inside a folder (or is the folder).
+ * @param   [in] path - The path.
+ * @param   [in] folder - The folder.
+ * @return  True if @p path is @p folder or inside it.
+ */
+bool IsWithin(const std::filesystem::path& path, const std::filesystem::path& folder)
+{
+    std::filesystem::path relative =
+        std::filesystem::weakly_canonical(path).lexically_relative(std::filesystem::weakly_canonical(folder));
+    return !relative.empty() && *relative.begin() != "..";
+}
 } // namespace
 
 ContentLibrary::ContentLibrary(HookRegistry hooks) : m_hooks(std::move(hooks)) {}
@@ -37,7 +50,7 @@ ContentLibrary ContentLibrary::Load(const std::string& directory, HookRegistry h
     return library;
 }
 
-void ContentLibrary::AddDirectory(const std::string& directory)
+void ContentLibrary::AddDirectory(const std::string& directory, const std::string& excludedFolder)
 {
     namespace fs = std::filesystem;
     std::error_code error;
@@ -46,7 +59,8 @@ void ContentLibrary::AddDirectory(const std::string& directory)
                            "\" not found (run from the project root, or pass the directory's path)");
     std::vector<fs::path> files;
     for (const fs::directory_entry& entry : fs::recursive_directory_iterator(directory))
-        if (entry.is_regular_file() && entry.path().extension() == ".json")
+        if (entry.is_regular_file() && entry.path().extension() == ".json" &&
+            (excludedFolder.empty() || !IsWithin(entry.path(), excludedFolder)))
             files.push_back(entry.path());
     std::sort(files.begin(), files.end());
     for (const fs::path& file : files)

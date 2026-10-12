@@ -2,10 +2,13 @@
 
 Computes the **exact expected damage and healing of a full party round** in Pathfinder 2e (Remaster rules), where earlier results change later rolls: a crit that makes the enemy off-guard, a Demoralize that lands frightened 1 or 2, a Feint that enables Sneak Attack, and so on.
 
+An unofficial fan project: not published, endorsed, or specifically approved by Paizo. The code is MIT-licensed; the game rules are used under the ORC License (see [License](#license)).
+
 ```
 make run    # example: which ranger/bard/rogue plan deals the most damage?
 make test   # unit tests (doctest)
 make docs   # API reference in build/docs/html (needs doxygen)
+make import # spells from Foundry VTT into data/imported (see "Importing spells from Foundry VTT")
 ```
 Run from the project root: the program reads its actions, spells and features from `data/` (or from the folder given as its first argument).
 
@@ -16,9 +19,11 @@ lib/
   engine/    the branching simulation (Engine), the Scenario builder and the reports
   content/   the content library: loads data/ and builds actions and features from it
   vendor/    third-party headers (nlohmann/json)
-data/        actions, spells and class features, one JSON file each (see "Adding content")
+data/        actions, spells and class features, one JSON file each (see "Adding content");
+             data/imported/ is made by make import and isn't committed
 examples/    the demo program (make run) and its sample party
 tests/       unit tests (make test), test-only spells (tests/data) and the vendored doctest framework
+tools/       the Foundry VTT spell importer (make import)
 ```
 Each group keeps its headers in `inc/` and its sources in `src/`. Every `inc/` folder is on the include path, so includes are just `#include "Action.h"`.
 
@@ -138,6 +143,19 @@ Actions, spells and class features are JSON files in `data/`, one definition per
 
 **When C++ is needed.** For a new *mechanic*, never for a new action. Strike, Aid, Strike Hard! and Spellstrike are data too ([data/actions/](data/actions/)). For a one-off effect inside an otherwise ordinary definition, register a hook (`HookRegistry::Register`) and call it with `{"hook": "name"}`. A mechanic many definitions will share belongs in the format: a new key read in [lib/content/src/DefinitionParser.cpp](lib/content/src/DefinitionParser.cpp) and applied in [lib/content/src/Templates.cpp](lib/content/src/Templates.cpp) to what the engine's `Action` supports ([lib/core/inc/Action.h](lib/core/inc/Action.h)).
 
+## Importing spells from Foundry VTT
+`make import` converts the spells of [Foundry VTT's PF2e system](https://github.com/foundryvtt/pf2e) into `data/imported/spells.json`, which the program loads with the rest of `data/`.
+
+- **Fetching.** The first run makes a sparse clone of only Foundry's spell folder into `.cache/foundry-pf2e` (about 20 MB); later runs update it. This is the only target that uses git and the network: `make`, `make test` and `make run` never do. `make import FOUNDRY=/path/to/pf2e` uses a clone you already have instead, and `rm -rf .cache/foundry-pf2e` starts over.
+- **When to run it.** No rebuild is needed afterwards, since the program reads `data/` when it runs. Run it again after Foundry's data changes (new books), after changing the importer, or after writing by hand a spell that was imported; otherwise loading fails with "already defined".
+- **What's imported.** Spells cast with 1–3 actions, as a free action or as a reaction, that have a spell attack or a save: their damage (basic saves and attacks), healing, both kinds of heightening, and outcomes listed by degree of success when every phrase in them is understood (conditions the engine models, "unaffected", no/half/full/double damage). In October 2026 that was about 270 of Foundry's ~2,000 spells.
+- **What's left out**, and why, is in `data/imported/import-report.md`: buffs and utility spells (no attack or save), long casting times, outcomes described in ways the converter doesn't understand, conditions the engine doesn't model (ranked by how many spells each one blocks), and so on. A spell imported without part of what it does (a variant, or an effect outside its outcomes) is listed under "something to check".
+- **Hand-written definitions win.** A spell already defined in `data/` isn't imported. To fix an imported spell, write it in `data/spells/` and import again.
+- **Known limits.** Focus spells that aren't cantrips import at their base rank; pass `UseOptions::rank` to heighten them. Damage is assumed to be dealt when the spell is cast.
+- **License.** Foundry's PF2e data is published under the ORC License or the OGL 1.0a (each spell names its own; see [License](#license)). `data/imported/` stays on your machine: it's git-ignored and shouldn't be committed or published.
+
+The converter is [tools/src/FoundryImport.cpp](tools/src/FoundryImport.cpp); [tests/test_import.cpp](tests/test_import.cpp) shows what it does with each kind of spell.
+
 ## Rulings
 Places where the rules text leaves room for a GM call. Each one lists the current choice and where to change it.
 
@@ -159,3 +177,30 @@ Places where the rules text leaves room for a GM call. Each one lists the curren
 - Persistent damage from a crit is doubled through each component's `doublesOnCrit` flag. Crit-only weapon riders, like flaming's 1d10, are not doubled.
 - On allies, drained lowers current and max HP together, so missing HP (and effective healing) is unchanged; ally HP loss isn't tracked. Drained added from a `custom` hook (by calling `AddCondition` directly) causes no HP loss.
 - Precision *resistance* isn't modeled; precision *immunity* is.
+
+## License
+- **Code**: MIT, see [LICENSE](LICENSE). This covers the source code, build files and documentation written for this project.
+- **Third-party code**: [nlohmann/json](https://github.com/nlohmann/json) (`lib/vendor/nlohmann`) and [doctest](https://github.com/doctest/doctest) (`tests/vendor`), both MIT; their license files are next to them.
+- **Game rules**: the game mechanics in `data/`, and the rules this README describes, come from Paizo's Pathfinder Second Edition and are used under the ORC License (below). They're Licensed Material under that license, so they stay under ORC rather than MIT. Each definition's `reference` names the book it comes from.
+- **Imported spells**: `make import` downloads [Foundry VTT's PF2e system](https://github.com/foundryvtt/pf2e) data to your machine and converts it. That data isn't part of this project and isn't distributed with it; its spells are published under the ORC License or the OGL 1.0a, as each one states. This project isn't affiliated with Foundry Gaming LLC or the PF2e system's developers.
+
+### ORC Notice
+This product is licensed under the ORC License located at the Library of Congress at TX 9-307-067 and available online at various locations including paizo.com/orclicense, azoralaw.com/orclicense, and others. All warranties are disclaimed as set forth therein.
+
+**Attribution:** This product is based on the following Licensed Material:
+- Pathfinder Player Core © 2023 Paizo Inc., Designed by Logan Bonner, Jason Bulmahn, Stephen Radney-MacFarland, and Mark Seifter. Authors: Alexander Augunas, Kate Baker, Logan Bonner, Jason Bulmahn, Carlos Cabrera, Calder CaDavid, James Case, Eleanor Ferron, Steven Hammond, Joan Hong, Vanessa Hoskins, James Jacobs, Jenny Jarzabski, Erik Keith, Dustin Knight, Lyz Liddell, Luis Loza, Patchen Mortimer, Dennis Muldoon, Stephen Radney-MacFarland, Mikhail Rekun, David N. Ross, Michael Sayre, Mark Seifter, Kendra Leigh Speedling, Mark Thompson, Clark Valentine, Andrew White, Landon Winkler, and Linda Zayas-Palmer.
+- Pathfinder Battlecry! © 2025 Paizo Inc., Authors: Logan Bonner, Jason Keeley, and Michael Sayre, with Saif Ansari, Kate Baker, Rigby Bendele, Tineke Bolleman, Jessica Catalan, Jeremy Corff, Rue Dickey, John Godek III, Alastor Guzman, Luis Loza, Dennis Muldoon, Ianara Natividad, Collette Quach, Stephen Radney-MacFarland, Mikhail Rekun, Mark Seifter, Shay Snow, Kendra Leigh Speedling, Andrew White, and Linda Zayas-Palmer.
+- Pathfinder Impossible Magic © 2026 Paizo Inc., Authors: Kate Baker, Minty Belmont, Rigby Bendele, Joshua Birdsong, Chris Bissette, Logan Bonner, James Case, Jessica Catalan, Katina Davis, Jesse Decker, Caryn DiMarco, Chris Eng, Ivis K. Flanagan, Leo Glass, Sen H.H.S., Joan Hong, Joshua Kim, Daniel Kwan, Luis Loza, Ron Lundeen, Derry Luttrell, Jonathan “Ryomasa” Mendoza, Jacob W. Michaels, Jaime Reyes Mondragon, Ianara Natividad, Kenneth Olson, Chesley Oxendine, Collette Quach, Stephen Radney-MacFarland, Mikhail Rekun, David N. Ross, Simone D. Sallé, Mark Seifter, Shay Snow, Kendra Leigh Speedling, Shu Qing Tan, Tan Shao Han, Mari Tokuda, Ruvaid Virk, Grady Wang, Andrew White, Landon Winkler, and Isis Wozniakowska.
+
+The credit lines are as Paizo publishes them, listed on [Archives of Nethys](https://2e.aonprd.com/Licenses.aspx).
+
+If you use this project's Licensed Material in your own published work, please credit it as follows: PF2e DPR Calculator © 2026 Maurício Soares.
+
+**Reserved Material:** this product has none of its own. Paizo's Reserved Material (trademarks such as Pathfinder, proper nouns, artwork and trade dress) isn't licensed under ORC; it's used under Paizo's Community Use Policy, below.
+
+**Expressly Designated Licensed Material:** none.
+
+### Paizo Community Use Policy
+PF2e DPR Calculator uses trademarks and/or copyrights owned by Paizo Inc., used under Paizo's Community Use Policy (paizo.com/licenses/communityuse). We are expressly prohibited from charging you to use or access this content. PF2e DPR Calculator is not published, endorsed, or specifically approved by Paizo. For more information about Paizo Inc. and Paizo products, visit paizo.com.
+
+Contact: Maurício Soares, through [this project's issues on GitHub](https://github.com/M-F-Soares/pf2e_dpr/issues).
