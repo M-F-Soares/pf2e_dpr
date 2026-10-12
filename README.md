@@ -24,6 +24,7 @@ data/        actions, spells and class features, one JSON file each (see "Adding
 examples/    the demo program (make run) and its sample party
 tests/       unit tests (make test), test-only spells (tests/data) and the vendored doctest framework
 tools/       the Foundry VTT spell importer (make import)
+.github/     CI: builds, runs the tests and the example on every pull request to main
 ```
 Each group keeps its headers in `inc/` and its sources in `src/`. Every `inc/` folder is on the include path, so includes are just `#include "Action.h"`.
 
