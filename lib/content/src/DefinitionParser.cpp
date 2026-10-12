@@ -15,6 +15,7 @@
 #include <map>
 #include <regex>
 #include <set>
+#include <string_view>
 #include <utility>
 
 namespace
@@ -188,10 +189,10 @@ bool BoolAt(const Json& object, const char* key, const Origin& origin)
  * @return  The list.
  * @throws  ContentError if it isn't a list.
  */
-const Json& List(const Json& value, const std::string& what, const Origin& origin)
+const Json& List(const Json& value, std::string_view what, const Origin& origin)
 {
     if (!value.is_array())
-        origin.Fail(what + " must be a list");
+        origin.Fail(std::string(what) + " must be a list");
     return value;
 }
 
@@ -203,10 +204,10 @@ const Json& List(const Json& value, const std::string& what, const Origin& origi
  * @return  The object.
  * @throws  ContentError if it isn't an object.
  */
-const Json& Object(const Json& value, const std::string& what, const Origin& origin)
+const Json& Object(const Json& value, std::string_view what, const Origin& origin)
 {
     if (!value.is_object())
-        origin.Fail(what + " must be an object");
+        origin.Fail(std::string(what) + " must be an object");
     return value;
 }
 
