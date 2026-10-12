@@ -1,0 +1,11 @@
+{
+    "name": "Grapple",
+    "reference": "Player Core",
+    "cost": 1,
+    "traits": ["attack"],
+    "check": {"stat": "skill:Athletics", "against": "Fort"},
+    "outcomes": {
+        "success": [{"condition": "grabbed"}],
+        "critSuccess": [{"condition": "restrained"}]
+    }
+}

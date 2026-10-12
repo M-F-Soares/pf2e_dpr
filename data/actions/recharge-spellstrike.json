@@ -1,0 +1,6 @@
+{
+    "name": "Recharge Spellstrike",
+    "cost": 1,
+    "traits": ["concentrate"],
+    "effects": [{"counter": "spellstrike-spent", "value": 0}]
+}

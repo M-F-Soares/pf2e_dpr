@@ -1,0 +1,8 @@
+{
+    "name": "Bless",
+    "reference": "Player Core",
+    "rank": 1,
+    "cost": 2,
+    "traits": ["concentrate", "manipulate"],
+    "effects": [{"modifier": "status", "value": 1, "on": "allies", "appliesTo": ["AttackRoll"]}]
+}

@@ -1,0 +1,13 @@
+{
+    "name": "Fear",
+    "reference": "Player Core",
+    "rank": 1,
+    "cost": 2,
+    "traits": ["concentrate", "emotion", "fear", "manipulate", "mental"],
+    "check": {"stat": "spell", "save": "Will"},
+    "outcomes": {
+        "success": [{"condition": "frightened", "value": 1}],
+        "failure": [{"condition": "frightened", "value": 2}],
+        "critFailure": [{"condition": "frightened", "value": 3}]
+    }
+}

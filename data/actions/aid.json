@@ -1,0 +1,26 @@
+{
+    "name": "Aid",
+    "displayName": "Aid {ally}",
+    "reference": "Player Core",
+    "cost": 1,
+    "check": {"stat": "chosen", "dc": 15},
+    "outcomes": {
+        "critSuccess": [{"modifier": "circumstance", "value": 2, "appliesTo": "chosen", "on": "ally", "uses": 1}],
+        "success": [{"modifier": "circumstance", "value": 1, "appliesTo": "chosen", "on": "ally", "uses": 1}],
+        "critFailure": [{"modifier": "circumstance", "value": -1, "appliesTo": "chosen", "on": "ally", "uses": 1}],
+        "always": [{"hook": "uses-reaction"}]
+    },
+    "defaultVariant": "trained",
+    "variants": {
+        "trained": {},
+        "expert": {},
+        "master": {
+            "outcomes": {"critSuccess": [{"modifier": "circumstance", "value": 3, "appliesTo": "chosen",
+                                          "on": "ally", "uses": 1}]}
+        },
+        "legendary": {
+            "outcomes": {"critSuccess": [{"modifier": "circumstance", "value": 4, "appliesTo": "chosen",
+                                          "on": "ally", "uses": 1}]}
+        }
+    }
+}

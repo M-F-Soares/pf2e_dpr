@@ -15,12 +15,14 @@
 /**
  * @brief   A full party round against one enemy, described with a fluent builder.
  * @code
+ *   ActionPtr bowStrike = content.Use("Strike", ranger, {.weapon = "Longbow"});
+ *   ActionPtr rapierStrike = content.Use("Strike", rogue, {.weapon = "Rapier"});
  *   Scenario a("Ranger 3 strikes");
  *   a.Against(brute)
- *    .AddTurn(ranger, {Strike(ranger, "Longbow"), Strike(ranger, "Longbow"), Strike(ranger, "Longbow")})
- *    .AddTurn(rogue,  {Strike(rogue, "Rapier"), Strike(rogue, "Rapier")});
+ *    .AddTurn(ranger, {bowStrike, bowStrike, bowStrike})
+ *    .AddTurn(rogue,  {rapierStrike, rapierStrike});
  *   Scenario b = a.Variant("Ranger strike + Demoralize")
- *                 .ReplaceTurn(ranger, {Strike(ranger, "Longbow"), Demoralize(ranger)});
+ *                 .ReplaceTurn(ranger, {bowStrike, content.Use("Demoralize", ranger)});
  *   Compare({a, b});
  * @endcode
  */

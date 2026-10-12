@@ -1,0 +1,28 @@
+{
+    "name": "Battle Medicine",
+    "reference": "Player Core",
+    "cost": 1,
+    "traits": ["healing", "manipulate"],
+    "check": {"stat": "skill:Medicine", "dc": 15},
+    "outcomes": {
+        "success": [{"heal": "2d8"}],
+        "critSuccess": [{"heal": "4d8"}]
+    },
+    "temporaryImmunity": {"on": "ally", "perActor": true},
+    "defaultVariant": "trained",
+    "variants": {
+        "trained": {},
+        "expert": {
+            "check": {"dc": 20},
+            "outcomes": {"success": [{"heal": "2d8+10"}], "critSuccess": [{"heal": "4d8+10"}]}
+        },
+        "master": {
+            "check": {"dc": 30},
+            "outcomes": {"success": [{"heal": "2d8+30"}], "critSuccess": [{"heal": "4d8+30"}]}
+        },
+        "legendary": {
+            "check": {"dc": 40},
+            "outcomes": {"success": [{"heal": "2d8+50"}], "critSuccess": [{"heal": "4d8+50"}]}
+        }
+    }
+}

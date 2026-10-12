@@ -1,0 +1,58 @@
+[
+    {
+        "name": "Fire Ray",
+        "rank": 1,
+        "cost": 2,
+        "check": {"stat": "spell", "against": "AC"},
+        "preset": "attack",
+        "damage": [{"dice": "2d6", "type": "fire"}]
+    },
+    {
+        "name": "Flame Lance",
+        "rank": 1,
+        "cost": 2,
+        "check": {"stat": "spell", "against": "AC"},
+        "preset": "attack",
+        "damage": [{"dice": "30", "type": "fire"}]
+    },
+    {
+        "name": "Searing Lance",
+        "rank": 1,
+        "cost": 2,
+        "check": {"stat": "spell", "against": "AC"},
+        "preset": "attack",
+        "damage": [{"dice": "30", "type": "fire"}, {"dice": "10", "type": "fire", "category": "persistent"}]
+    },
+    {
+        "name": "Force Lance",
+        "rank": 1,
+        "cost": 2,
+        "check": {"stat": "spell", "against": "AC"},
+        "preset": "attack",
+        "damage": [{"dice": "30", "type": "force"}]
+    },
+    {
+        "name": "Blast",
+        "rank": 1,
+        "cost": 2,
+        "check": {"stat": "spell", "save": "Ref"},
+        "preset": "basicSave",
+        "damage": [{"dice": "10", "type": "fire"}]
+    },
+    {
+        "name": "Thunder Blast",
+        "rank": 1,
+        "cost": 2,
+        "check": {"stat": "spell", "save": "Ref"},
+        "preset": "basicSave",
+        "damage": [{"dice": "10", "type": "electricity"}]
+    },
+    {
+        "name": "Big Blast",
+        "rank": 1,
+        "cost": 3,
+        "check": {"stat": "spell", "save": "Ref"},
+        "preset": "basicSave",
+        "damage": [{"dice": "10", "type": "fire"}]
+    }
+]

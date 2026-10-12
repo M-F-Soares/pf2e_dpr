@@ -1,0 +1,13 @@
+{
+    "name": "Trip",
+    "reference": "Player Core",
+    "cost": 1,
+    "traits": ["attack"],
+    "check": {"stat": "skill:Athletics", "against": "Ref"},
+    "damage": [{"dice": "1d6", "type": "bludgeoning"}],
+    "outcomes": {
+        "success": [{"condition": "prone"}],
+        "critSuccess": [{"condition": "prone"}, {"damage": "normal"}],
+        "critFailure": [{"condition": "prone", "on": "actor"}]
+    }
+}

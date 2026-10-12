@@ -1,0 +1,6 @@
+{
+    "name": "Strike Hard!",
+    "reference": "Battlecry!",
+    "cost": 2,
+    "effects": [{"grant": "Strike", "reaction": true, "displayName": "Strike ({weapon}, Strike Hard!)"}]
+}

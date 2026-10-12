@@ -1,0 +1,7 @@
+{
+    "name": "Hunt Prey",
+    "reference": "Player Core",
+    "cost": 1,
+    "traits": ["concentrate"],
+    "effects": [{"counter": "prey"}]
+}

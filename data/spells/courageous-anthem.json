@@ -1,0 +1,8 @@
+{
+    "name": "Courageous Anthem",
+    "reference": "Player Core",
+    "cantrip": true,
+    "cost": 1,
+    "traits": ["bard", "cantrip", "composition", "concentrate", "emotion", "mental"],
+    "effects": [{"modifier": "status", "value": 1, "on": "allies", "appliesTo": ["AttackRoll", "Damage"]}]
+}

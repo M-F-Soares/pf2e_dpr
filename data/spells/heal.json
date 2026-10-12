@@ -1,0 +1,18 @@
+{
+    "name": "Heal",
+    "reference": "Player Core",
+    "rank": 1,
+    "traits": ["healing", "vitality"],
+    "effects": [{"heal": "1d8", "on": "ally"}],
+    "heightened": {"every": 1, "heal": "1d8"},
+    "variants": {
+        "1-action": {"cost": 1, "displayName": "Heal (1a) -> {ally}"},
+        "2-action": {
+            "cost": 2,
+            "displayName": "Heal (2a) -> {ally}",
+            "effects": [{"heal": "1d8+8", "on": "ally"}],
+            "heightened": {"heal": "1d8+8"}
+        },
+        "3-action": {"cost": 3, "displayName": "Heal (3a) -> party", "effects": [{"heal": "1d8", "on": "allies"}]}
+    }
+}

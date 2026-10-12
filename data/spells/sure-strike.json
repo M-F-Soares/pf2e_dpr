@@ -1,0 +1,8 @@
+{
+    "name": "Sure Strike",
+    "reference": "Player Core",
+    "rank": 1,
+    "cost": 1,
+    "traits": ["concentrate", "fortune"],
+    "effects": [{"counter": "fortune:attack"}]
+}

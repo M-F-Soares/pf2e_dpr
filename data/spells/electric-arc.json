@@ -1,0 +1,11 @@
+{
+    "name": "Electric Arc",
+    "reference": "Player Core",
+    "cantrip": true,
+    "cost": 2,
+    "traits": ["cantrip", "concentrate", "electricity", "manipulate"],
+    "check": {"stat": "spell", "save": "Ref"},
+    "preset": "basicSave",
+    "damage": [{"dice": "2d4", "type": "electricity"}],
+    "heightened": {"every": 1, "damage": [{"dice": "1d4"}]}
+}

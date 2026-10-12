@@ -5,6 +5,8 @@ BUILD    := build
 # Each library group has its headers in lib/<group>/inc and its sources in lib/<group>/src.
 LIBS     := core engine content
 CPPFLAGS += $(LIBS:%=-Ilib/%/inc)
+# Third-party headers (nlohmann/json); -isystem keeps their warnings out of ours.
+CPPFLAGS += -isystem lib/vendor
 
 SRC         := $(foreach l,$(LIBS),$(wildcard lib/$(l)/src/*.cpp))
 OBJ         := $(SRC:%.cpp=$(BUILD)/%.o)

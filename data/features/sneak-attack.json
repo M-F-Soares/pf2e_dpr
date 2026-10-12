@@ -1,0 +1,9 @@
+{
+    "name": "Sneak Attack",
+    "reference": "Player Core",
+    "strikeDamage": {
+        "dice": {"1": 1, "5": 2, "11": 3, "17": 4},
+        "die": 6,
+        "when": {"enemyOffGuard": true, "weaponTraits": ["agile", "finesse", "ranged"]}
+    }
+}

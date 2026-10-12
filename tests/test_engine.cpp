@@ -6,16 +6,52 @@
 
 #include "vendor/doctest.h"
 
+#include "ContentLibrary.h"
 #include "Scenario.h"
-#include "Actions.h"
 
 #include <functional>
-#include <stdexcept>
 
 namespace
 {
 constexpr int kSuccess = static_cast<int>(Degree::Success);          /**< DegreeDist index: success. */
 constexpr int kCritSuccess = static_cast<int>(Degree::CritSuccess);  /**< DegreeDist index: critical success. */
+
+/**
+ * @brief   The project's content (data/) plus the test spells (tests/data/), loaded once.
+ * @return  The library.
+ */
+const ContentLibrary& Content()
+{
+    static const ContentLibrary library = [] {
+        ContentLibrary content = ContentLibrary::Load("data");
+        content.AddDirectory("tests/data");
+        return content;
+    }();
+    return library;
+}
+
+/**
+ * @brief   An action from the content library.
+ * @param   [in] name - The action's name.
+ * @param   [in] actor - The character using it.
+ * @param   [in] options - Rank, ally and variant.
+ * @return  The action.
+ */
+ActionPtr Use(const std::string& name, const Character& actor, const UseOptions& options = {})
+{
+    return Content().Use(name, actor, options);
+}
+
+/**
+ * @brief   A Strike from the content library.
+ * @param   [in] actor - The attacker.
+ * @param   [in] weaponName - Name of one of @p actor's weapons.
+ * @return  The action.
+ */
+ActionPtr Strike(const Character& actor, const std::string& weaponName)
+{
+    return Use("Strike", actor, {.weapon = weaponName});
+}
 
 /**
  * @brief   Test character with a finesse sword (1d8+4 slashing: hit 8.5, crit 17).
@@ -116,7 +152,7 @@ TEST_CASE("engine: Demoralize result changes the next Strike (chained probabilit
 {
     Character fighter = MakeFighter();
     Scenario scenario("demoralize then strike");
-    scenario.Against(MakeDummy()).AddTurn(fighter, {Demoralize(fighter), Strike(fighter, "Sword")});
+    scenario.Against(MakeDummy()).AddTurn(fighter, {Use("Demoralize", fighter), Strike(fighter, "Sword")});
 
     // Intimidation +10 vs Will DC 20; frightened lowers AC by its value. Demoralize has no attack trait.
     DegreeDist demoralizeRoll = ResolveCheck(10, 20);
@@ -131,16 +167,16 @@ TEST_CASE("engine: enemy immune to mental ignores Demoralize")
     Monster enemy = MakeDummy();
     enemy.defenses.immunities = {"mental"};
     Scenario scenario("mindless");
-    scenario.Against(enemy).AddTurn(fighter, {Demoralize(fighter), Strike(fighter, "Sword")});
+    scenario.Against(enemy).AddTurn(fighter, {Use("Demoralize", fighter), Strike(fighter, "Sword")});
     CHECK(scenario.Run().ledger.TotalDamage() == doctest::Approx(StrikeEV(23, 30)));
 }
 
 TEST_CASE("engine: Feint + Sneak Attack (success = next attack only, crit = all)")
 {
     Character rogue = MakeFighter("Rogue");
-    rogue.features = {SneakAttack(1)};
+    rogue.features = {Content().GetFeature("Sneak Attack", rogue)};
     Scenario scenario("feint");
-    scenario.Against(MakeDummy()).AddTurn(rogue, {Feint(rogue), Strike(rogue, "Sword"), Strike(rogue, "Sword")});
+    scenario.Against(MakeDummy()).AddTurn(rogue, {Use("Feint", rogue), Strike(rogue, "Sword"), Strike(rogue, "Sword")});
 
     DegreeDist feintRoll = ResolveCheck(10, 20);  // Deception vs Perception DC
     double sneakHit = 8.5 + 3.5, sneakCrit = 17.0 + 7.0;
@@ -156,11 +192,12 @@ TEST_CASE("engine: merging branches never changes results")
 {
     Character fighterA = MakeFighter("A");
     Character fighterB = MakeFighter("B");
-    fighterB.features = {SneakAttack(2)};
+    fighterB.level = 5;  // 2d6 Sneak Attack
+    fighterB.features = {Content().GetFeature("Sneak Attack", fighterB)};
     Scenario scenario("complex");
     scenario.Against(MakeDummy())
-        .AddTurn(fighterA, {Demoralize(fighterA), Strike(fighterA, "Sword"), Feint(fighterA)})
-        .AddTurn(fighterB, {Feint(fighterB), Strike(fighterB, "Sword"), Strike(fighterB, "Sword")});
+        .AddTurn(fighterA, {Use("Demoralize", fighterA), Strike(fighterA, "Sword"), Use("Feint", fighterA)})
+        .AddTurn(fighterB, {Use("Feint", fighterB), Strike(fighterB, "Sword"), Strike(fighterB, "Sword")});
     Settings noMerge;
     noMerge.mergeStates = false;
     RunResult merged = scenario.Run();
@@ -176,8 +213,8 @@ TEST_CASE("engine: Strike Hard! gives a reaction Strike without MAP, once per ro
     Character ally = MakeFighter("Ally");
     Scenario scenario("tactic");
     scenario.Against(MakeDummy())
-        .AddTurn(commander, {StrikeHard(commander, ally, "Sword")})
-        .AddTurn(other, {StrikeHard(other, ally, "Sword")})
+        .AddTurn(commander, {Use("Strike Hard!", commander, {.ally = &ally, .allyWeapon = "Sword"})})
+        .AddTurn(other, {Use("Strike Hard!", other, {.ally = &ally, .allyWeapon = "Sword"})})
         .AddTurn(ally, {Strike(ally, "Sword"), Strike(ally, "Sword")});
     RunResult result = scenario.Run();
     // Reaction Strike at full bonus; the 2nd tactic finds the reaction used; the ally's own turn starts at MAP 0.
@@ -190,7 +227,9 @@ TEST_CASE("engine: Courageous Anthem adds +1 status to attack and damage")
     Character bard = MakeFighter("Bard");
     Character fighter = MakeFighter();
     Scenario scenario("anthem");
-    scenario.Against(MakeDummy()).AddTurn(bard, {CourageousAnthem(bard)}).AddTurn(fighter, {Strike(fighter, "Sword")});
+    scenario.Against(MakeDummy())
+        .AddTurn(bard, {Use("Courageous Anthem", bard)})
+        .AddTurn(fighter, {Strike(fighter, "Sword")});
     CHECK(scenario.Run().ledger.TotalDamage() == doctest::Approx(StrikeEV(24, 30, 9.5, 19.0)));
 }
 
@@ -199,7 +238,7 @@ TEST_CASE("engine: Sure Strike gives fortune to the next attack only")
     Character fighter = MakeFighter();
     Scenario scenario("sure strike");
     scenario.Against(MakeDummy())
-        .AddTurn(fighter, {SureStrike(fighter), Strike(fighter, "Sword"), Strike(fighter, "Sword")});
+        .AddTurn(fighter, {Use("Sure Strike", fighter), Strike(fighter, "Sword"), Strike(fighter, "Sword")});
     CHECK(scenario.Run().ledger.TotalDamage() ==
           doctest::Approx(StrikeEV(23, 30, 8.5, 17.0, Fortune::Fortune) + StrikeEV(18, 30)));
 }
@@ -217,7 +256,7 @@ TEST_CASE("engine: basic save spell uses the enemy's degree")
     Character caster = MakeFighter("Caster");
     Scenario scenario("blast");
     scenario.Against(MakeDummy())
-        .AddTurn(caster, {BasicSaveSpell(caster, "Blast", 2, Defense::Ref, {Damage(0, 0, 10, DamageType::Fire)})});
+        .AddTurn(caster, {Use("Blast", caster)});
     DegreeDist save = ResolveCheck(10, 25);  // Reflex +10 vs DC 25
     double expected = save[kSuccess] * 5 + save[1] * 10 + save[0] * 20;
     CHECK(scenario.Run().ledger.TotalDamage() == doctest::Approx(expected));
@@ -246,7 +285,8 @@ TEST_CASE("engine: effective healing is capped by missing HP and chains between 
     Character hurt = MakeFighter("Hurt");
     hurt.hpMissing = 5;
     Scenario scenario("heal");
-    scenario.Against(MakeDummy()).Member(hurt).AddTurn(cleric, {Heal(cleric, hurt, 1, 1), Heal(cleric, hurt, 1, 1)});
+    ActionPtr heal = Use("Heal", cleric, {.ally = &hurt, .variant = "1-action"});
+    scenario.Against(MakeDummy()).Member(hurt).AddTurn(cleric, {heal, heal});
     RunResult result = scenario.Run();
 
     double effective = 0.0;
@@ -266,7 +306,7 @@ TEST_CASE("engine: adaptive step chooses per branch")
     Scenario scenario("adaptive");
     // Demoralize; then only Strike if it worked, otherwise Demoralize is no longer usable anyway -> Strike.
     scenario.Against(MakeDummy())
-        .AddTurn(fighter, {Demoralize(fighter), Choose([&](const View& view) -> ActionPtr {
+        .AddTurn(fighter, {Use("Demoralize", fighter), Choose([&](const View& view) -> ActionPtr {
                             return view.EnemyCondition(ConditionKind::Frightened) > 0 ? Strike(fighter, "Sword")
                                                                                       : nullptr;
                         })});
@@ -380,13 +420,37 @@ Character MakeMagus()
 }
 
 /**
- * @brief   A 2-action 2d6 fire spell attack (hit 7, crit 14).
+ * @brief   A 2-action 2d6 fire spell attack (hit 7, crit 14), from tests/data/spells.json.
  * @param   [in] caster - The caster.
  * @return  The spell.
  */
 ActionPtr FireRay(const Character& caster)
 {
-    return SpellAttackSpell(caster, "Fire Ray", 2, {Damage(2, 6, 0, DamageType::Fire)});
+    return Use("Fire Ray", caster);
+}
+
+/**
+ * @brief   A Spellstrike from the content library.
+ * @param   [in] magus - The magus.
+ * @param   [in] weaponName - Name of the weapon to Strike with.
+ * @param   [in] spell - The spell it carries.
+ * @return  The action.
+ */
+ActionPtr Spellstrike(const Character& magus, const std::string& weaponName, const ActionPtr& spell)
+{
+    return Use("Spellstrike", magus, {.weapon = weaponName, .spell = spell});
+}
+
+/**
+ * @brief   An Overwhelming Spellstrike from the content library.
+ * @param   [in] magus - The magus; their level is the resistance ignored.
+ * @param   [in] weaponName - Name of the weapon to Strike with.
+ * @param   [in] spell - The spell it carries.
+ * @return  The action.
+ */
+ActionPtr OverwhelmingSpellstrike(const Character& magus, const std::string& weaponName, const ActionPtr& spell)
+{
+    return Use("Overwhelming Spellstrike", magus, {.weapon = weaponName, .spell = spell});
 }
 } // namespace
 
@@ -432,7 +496,7 @@ TEST_CASE("magus: Courageous Anthem adds +1 to the spell attack roll and its dam
     Character bard = MakeFighter("Bard");
     Character magus = MakeMagus();
     Scenario scenario("anthem fire ray");
-    scenario.Against(MakeDummy()).AddTurn(bard, {CourageousAnthem(bard)}).AddTurn(magus, {FireRay(magus)});
+    scenario.Against(MakeDummy()).AddTurn(bard, {Use("Courageous Anthem", bard)}).AddTurn(magus, {FireRay(magus)});
     CHECK(scenario.Run().ledger.TotalDamage() == doctest::Approx(StrikeEV(22, 30, 8.0, 16.0)));
 }
 
@@ -476,7 +540,7 @@ TEST_CASE("magus: Spellstrike can't be used again until recharged")
     Scenario recharged("recharge first");
     recharged.Against(MakeDummy())
         .Counter(magus, "spellstrike-spent")
-        .AddTurn(magus, {RechargeSpellstrike(magus), Spellstrike(magus, "Sword", FireRay(magus))});
+        .AddTurn(magus, {Use("Recharge Spellstrike", magus), Spellstrike(magus, "Sword", FireRay(magus))});
     CHECK(recharged.Run().ledger.TotalDamage() == doctest::Approx(StrikeEV(23, 30, 15.5, 31.0)));
 }
 
@@ -496,7 +560,7 @@ TEST_CASE("magus: Spellstrike damage is one instance for weaknesses")
 TEST_CASE("magus: Spellstrike with a save spell rolls the save unless the Strike critically fails")
 {
     Character magus = MakeMagus();
-    ActionPtr blast = BasicSaveSpell(magus, "Thunder Blast", 2, Defense::Ref, {Damage(0, 0, 10, DamageType::Electricity)});
+    ActionPtr blast = Use("Thunder Blast", magus);
     Scenario scenario("save spell");
     scenario.Against(MakeDummy()).AddTurn(magus, {Spellstrike(magus, "Sword", blast)});
 
@@ -514,7 +578,7 @@ TEST_CASE("magus: Courageous Anthem adds +1 to the Spellstrike roll and to each 
     Character magus = MakeMagus();
     Scenario scenario("anthem spellstrike");
     scenario.Against(MakeDummy())
-        .AddTurn(bard, {CourageousAnthem(bard)})
+        .AddTurn(bard, {Use("Courageous Anthem", bard)})
         .AddTurn(magus, {Spellstrike(magus, "Sword", FireRay(magus))});
     // Strike damage 9.5 and spell damage 8 (each roll gets +1), doubled on a crit.
     CHECK(scenario.Run().ledger.TotalDamage() == doctest::Approx(StrikeEV(24, 30, 17.5, 35.0)));
@@ -523,24 +587,27 @@ TEST_CASE("magus: Courageous Anthem adds +1 to the Spellstrike roll and to each 
 TEST_CASE("magus: Spellstrike only takes 1- or 2-action spells with an attack roll or a save")
 {
     Character magus = MakeMagus();
-    CHECK_THROWS_AS(Spellstrike(magus, "Sword", CourageousAnthem(magus)), std::invalid_argument);
-    ActionPtr threeActions = BasicSaveSpell(magus, "Big Blast", 3, Defense::Ref, {Damage(0, 0, 10, DamageType::Fire)});
-    CHECK_THROWS_AS(Spellstrike(magus, "Sword", threeActions), std::invalid_argument);
+    CHECK_THROWS_WITH_AS(Spellstrike(magus, "Sword", Use("Courageous Anthem", magus)),
+                         "Spellstrike: can't carry \"Courageous Anthem\": it needs a spell with a spell attack roll "
+                         "or a saving throw",
+                         ContentError);
+    ActionPtr threeActions = Use("Big Blast", magus);
+    CHECK_THROWS_WITH_AS(Spellstrike(magus, "Sword", threeActions),
+                         "Spellstrike: can't carry \"Big Blast\": it needs a spell that takes 1 or 2 actions to cast",
+                         ContentError);
 }
 
 namespace
 {
 /**
  * @brief   30 fire on a hit, 60 on a crit: flat damage keeps the resistance math exact.
+ * @details From tests/data/spells.json, like "Searing Lance": the same plus 10 persistent fire.
  * @param   [in] caster - The caster.
- * @param   [in] extra - More damage components for the spell.
  * @return  The spell.
  */
-ActionPtr FlameLance(const Character& caster, std::vector<DamageComponent> extra = {})
+ActionPtr FlameLance(const Character& caster)
 {
-    std::vector<DamageComponent> damage = {Damage(0, 0, 30, DamageType::Fire)};
-    damage.insert(damage.end(), extra.begin(), extra.end());
-    return SpellAttackSpell(caster, "Flame Lance", 2, damage);
+    return Use("Flame Lance", caster);
 }
 
 /**
@@ -593,7 +660,7 @@ TEST_CASE("overwhelming spellstrike: the spell's persistent damage ignores resis
     Monster target = MakeDummy();
     target.defenses.resistances = {{DamageType::Fire, 15}};
     Scenario scenario("persistent");
-    ActionPtr lance = FlameLance(magus, {Persistent(0, 0, 10, DamageType::Fire)});
+    ActionPtr lance = Use("Searing Lance", magus);  // Flame Lance plus 10 persistent fire
     scenario.Against(target).AddTurn(magus, {OverwhelmingSpellstrike(magus, "Sword", lance)});
     // One tick of 10 - 3 = 7, or 20 - 3 = 17 after a crit (without the feat: 0 and 5).
     DegreeDist strikeRoll = ResolveCheck(23, 30);
@@ -612,7 +679,7 @@ TEST_CASE("overwhelming spellstrike: immunities and other damage types are unaff
 
     Monster forceResistant = MakeDummy();
     forceResistant.defenses.resistances = {{DamageType::Force, 15}};
-    ActionPtr forceLance = SpellAttackSpell(magus, "Force Lance", 2, {Damage(0, 0, 30, DamageType::Force)});
+    ActionPtr forceLance = Use("Force Lance", magus);
     Scenario force("force");
     force.Against(forceResistant).AddTurn(magus, {OverwhelmingSpellstrike(magus, "Sword", forceLance)});
     CHECK(force.Run().ledger.TotalDamage() == doctest::Approx(StrikeEV(23, 30, 8.5 + 15.0, 17.0 + 45.0)));

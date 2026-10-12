@@ -7,13 +7,16 @@
 
 #pragma once
 
+#include "ContentLibrary.h"
 #include "Creature.h"
 
 /**
  * @brief   Level 5 ranger with a composite longbow (deadly d10) and Precision edge.
+ * @param   [in] content - Where the Precision Edge feature comes from.
  * @return  The character.
+ * @throws  ContentError if @p content has no "Precision Edge".
  */
-Character ExampleRanger();
+Character ExampleRanger(const ContentLibrary& content);
 
 /**
  * @brief   Level 5 bard (Charisma caster) with a rapier, and Intimidation, Deception and Performance.
@@ -23,9 +26,11 @@ Character ExampleBard();
 
 /**
  * @brief   Level 5 thief rogue with a rapier and 2d6 Sneak Attack.
+ * @param   [in] content - Where the Sneak Attack feature comes from.
  * @return  The character.
+ * @throws  ContentError if @p content has no "Sneak Attack".
  */
-Character ExampleRogue();
+Character ExampleRogue(const ContentLibrary& content);
 
 /**
  * @brief   Level 5 cleric (Wisdom caster) with a mace, Medicine and Religion.

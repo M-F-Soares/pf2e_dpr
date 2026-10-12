@@ -7,7 +7,7 @@ OUTPUT_DIRECTORY       = build/docs
 INPUT                  = README.md lib examples tests
 RECURSIVE              = YES
 FILE_PATTERNS          = *.h *.cpp *.md
-EXCLUDE                = tests/vendor
+EXCLUDE                = tests/vendor lib/vendor
 USE_MDFILE_AS_MAINPAGE = README.md
 # Show includes as the code writes them ("Action.h"), since each inc/ is on the include path.
 STRIP_FROM_INC_PATH    = lib/core/inc lib/engine/inc lib/content/inc examples/inc

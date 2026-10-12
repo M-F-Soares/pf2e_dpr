@@ -1,0 +1,12 @@
+{
+    "name": "Demoralize",
+    "reference": "Player Core",
+    "cost": 1,
+    "traits": ["auditory", "concentrate", "emotion", "fear", "mental"],
+    "check": {"stat": "skill:Intimidation", "against": "Will"},
+    "outcomes": {
+        "success": [{"condition": "frightened", "value": 1}],
+        "critSuccess": [{"condition": "frightened", "value": 2}]
+    },
+    "temporaryImmunity": {"on": "enemy", "perActor": true}
+}

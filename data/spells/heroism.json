@@ -1,0 +1,15 @@
+{
+    "name": "Heroism",
+    "reference": "Player Core",
+    "rank": 1,
+    "cost": 2,
+    "traits": ["concentrate", "manipulate", "mental"],
+    "effects": [{"modifier": "status", "value": 1, "on": "ally",
+                 "appliesTo": ["AttackRoll", "Save", "Skill|Check", "Perception|Check"]}],
+    "heightened": {
+        "6": {"effects": [{"modifier": "status", "value": 2, "on": "ally",
+                           "appliesTo": ["AttackRoll", "Save", "Skill|Check", "Perception|Check"]}]},
+        "9": {"effects": [{"modifier": "status", "value": 3, "on": "ally",
+                           "appliesTo": ["AttackRoll", "Save", "Skill|Check", "Perception|Check"]}]}
+    }
+}

@@ -1,0 +1,20 @@
+[
+    {
+        "name": "Spellstrike",
+        "displayName": "Spellstrike ({spell})",
+        "cost": 2,
+        "check": {"stat": "weapon"},
+        "preset": "strike",
+        "attacks": 2,
+        "spends": "spellstrike-spent",
+        "carriesSpell": {"checks": ["attack", "save"], "costs": [1, 2]}
+    },
+    {
+        "name": "Overwhelming Spellstrike",
+        "extends": "Spellstrike",
+        "displayName": "Overwhelming Spellstrike ({spell})",
+        "carriesSpell": {
+            "ignoreResistance": {"types": ["acid", "cold", "electricity", "fire", "sonic"], "amount": "level"}
+        }
+    }
+]

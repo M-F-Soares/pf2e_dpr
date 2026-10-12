@@ -1,0 +1,13 @@
+{
+    "name": "Feint",
+    "reference": "Player Core",
+    "cost": 1,
+    "traits": ["mental"],
+    "check": {"stat": "skill:Deception", "against": "Perception"},
+    "outcomes": {
+        "success": [{"modifier": "circumstance", "value": -2, "appliesTo": ["AC|Melee"], "offGuard": true,
+                     "on": "enemy", "vsActor": true, "until": "endOfActorTurn", "uses": 1}],
+        "critSuccess": [{"modifier": "circumstance", "value": -2, "appliesTo": ["AC|Melee"], "offGuard": true,
+                         "on": "enemy", "vsActor": true}]
+    }
+}

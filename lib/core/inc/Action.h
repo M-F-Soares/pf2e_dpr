@@ -196,8 +196,8 @@ struct Outcome
 
 /**
  * @brief   An action, spell or activity, described as data.
- * @details The engine reads it to roll the check and apply the outcome of each degree. See the factories in
- *          Actions.h.
+ * @details The engine reads it to roll the check and apply the outcome of each degree. ContentLibrary::Use()
+ *          builds these from the definitions in data/.
  */
 struct Action
 {
@@ -353,10 +353,12 @@ struct Step
 
 /**
  * @brief   A step that picks its action separately in each branch (adaptive plans).
- * @code
- * Choose([&](const View& v) { return v.EnemyOffGuardToMe() ? Strike(rogue, "Rapier") : Feint(rogue); })
- * @endcode
  * @param   [in] chooser - Returns the action to take given the branch, or null to do nothing.
  * @return  The step.
+ * @code
+ *          ActionPtr feint = content.Use("Feint", rogue);
+ *          ActionPtr strike = content.Use("Strike", rogue, {.weapon = "Rapier"});
+ *          Choose([&](const View& v) { return v.EnemyOffGuardToMe() ? strike : feint; })
+ * @endcode
  */
 inline Step Choose(std::function<ActionPtr(const View&)> chooser) { return Step(std::move(chooser)); }

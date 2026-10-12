@@ -1,0 +1,8 @@
+{
+    "name": "Strike",
+    "displayName": "Strike ({weapon})",
+    "reference": "Player Core",
+    "cost": 1,
+    "check": {"stat": "weapon"},
+    "preset": "strike"
+}

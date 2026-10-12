@@ -5,9 +5,7 @@
 
 #include "ExampleParty.h"
 
-#include "Actions.h"
-
-Character ExampleRanger()
+Character ExampleRanger(const ContentLibrary& content)
 {
     Character ranger;
     ranger.name = "Ranger";
@@ -27,7 +25,7 @@ Character ExampleRanger()
     bow.strengthToDamage = false;
     bow.deadly = 10;
     ranger.weapons = {bow};
-    ranger.features = {PrecisionEdge(1)};
+    ranger.features = {content.GetFeature("Precision Edge", ranger)};
     return ranger;
 }
 
@@ -55,7 +53,7 @@ Character ExampleBard()
     return bard;
 }
 
-Character ExampleRogue()
+Character ExampleRogue(const ContentLibrary& content)
 {
     Character rogue;
     rogue.name = "Rogue";
@@ -75,7 +73,7 @@ Character ExampleRogue()
     rapier.strengthToDamage = false;
     rapier.deadly = 8;
     rogue.weapons = {rapier};
-    rogue.features = {SneakAttack(2)};
+    rogue.features = {content.GetFeature("Sneak Attack", rogue)};
     return rogue;
 }
 

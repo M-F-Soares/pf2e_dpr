@@ -38,6 +38,13 @@ enum class Skill
 };
 
 /**
+ * @brief   Name of a skill as the rules write it ("Acrobatics", "Intimidation", ...).
+ * @param   [in] skill - The skill.
+ * @return  A static string; "?" for an out-of-range value.
+ */
+const char* ToString(Skill skill);
+
+/**
  * @brief   The attribute a skill is based on (which conditions like clumsy affect it).
  * @param   [in] skill - The skill.
  * @return  Its attribute, or Attribute::None for an out-of-range value.
@@ -55,6 +62,13 @@ enum class Defense
     Will,        /**< Will. */
     Perception,  /**< Perception. */
 };
+
+/**
+ * @brief   Short name of a defense ("AC", "Fort", "Ref", "Will", "Perception").
+ * @param   [in] defense - The defense.
+ * @return  A static string; "?" for an out-of-range value.
+ */
+const char* ToString(Defense defense);
 
 /**
  * @brief   Tags for the defender rolling a save/Perception check, and for the defense used as a DC.
@@ -94,7 +108,7 @@ struct Feature
  */
 struct Weapon
 {
-    std::string name;                           /**< Name used to pick the weapon, e.g. in Strike(). */
+    std::string name;                           /**< Name used to pick the weapon (UseOptions::weapon). */
     int attack = 0;                             /**< Total attack bonus, potency rune included. */
     int potency = 0;                            /**< Item bonus inside `attack` (so it doesn't stack with other item bonuses). */
     int dice = 1;                               /**< 1 + striking rune. */

@@ -7,6 +7,43 @@
 
 #include <stdexcept>
 
+const char* ToString(Skill skill)
+{
+    switch (skill)
+    {
+    case Skill::Acrobatics: return "Acrobatics";
+    case Skill::Arcana: return "Arcana";
+    case Skill::Athletics: return "Athletics";
+    case Skill::Crafting: return "Crafting";
+    case Skill::Deception: return "Deception";
+    case Skill::Diplomacy: return "Diplomacy";
+    case Skill::Intimidation: return "Intimidation";
+    case Skill::Medicine: return "Medicine";
+    case Skill::Nature: return "Nature";
+    case Skill::Occultism: return "Occultism";
+    case Skill::Performance: return "Performance";
+    case Skill::Religion: return "Religion";
+    case Skill::Society: return "Society";
+    case Skill::Stealth: return "Stealth";
+    case Skill::Survival: return "Survival";
+    case Skill::Thievery: return "Thievery";
+    }
+    return "?";
+}
+
+const char* ToString(Defense defense)
+{
+    switch (defense)
+    {
+    case Defense::AC: return "AC";
+    case Defense::Fort: return "Fort";
+    case Defense::Ref: return "Ref";
+    case Defense::Will: return "Will";
+    case Defense::Perception: return "Perception";
+    }
+    return "?";
+}
+
 Attribute SkillAttribute(Skill skill)
 {
     switch (skill)
