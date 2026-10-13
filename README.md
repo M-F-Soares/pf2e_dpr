@@ -178,6 +178,21 @@ Places where the rules text leaves room for a GM call. Each one lists the curren
 - Persistent damage from a crit is doubled through each component's `doublesOnCrit` flag. Crit-only weapon riders, like flaming's 1d10, are not doubled.
 - On allies, drained lowers current and max HP together, so missing HP (and effective healing) is unchanged; ally HP loss isn't tracked. Drained added from a `custom` hook (by calling `AddCondition` directly) causes no HP loss.
 - Precision *resistance* isn't modeled; precision *immunity* is.
+- Summons and battle forms aren't supported, and the importer leaves them out. Both swap in another creature's statistics (a stat block for each creature or form, and there are many), and most of what they add comes in later rounds, while the calculator covers one round.
+
+## To-do
+Next steps, roughly in order. Counts are from Foundry's data in October 2026.
+
+- [ ] **Import the remaining spells that affect damage or healing.** 736 of the spells the importer leaves out change the party's damage or healing: damage, healing and temporary HP, offensive buffs (invisibility included), debuffs on what the party rolls against, and condition removal.
+- [ ] **Import actions.** Foundry has 583 actions (basic, skill, class, ancestry, archetype...); 9 are written by hand in `data/actions/`. Many are exploration or downtime actions with no combat numbers, so they'll need sorting first, as the spells were.
+- [ ] **Import features that affect damage or healing,** with the actions they grant. Feats, class features and ancestry features add up to about 7,300 entries in Foundry; most of their effects are rule elements, like buffs' spell effects.
+- [ ] **Support summons and battle forms.** Needs creature stat blocks (or a subset of Foundry's bestiaries) and the multi-round simulation below.
+- [ ] **Simulate the enemy's turn.** Defensive buffs, debuffs on the enemy's attacks or actions (enfeebled, slowed, stunned), and reactions to its actions can't change the results today. About 270 of the left-out spells are waiting on this.
+- [ ] **Simulate more than one round.** Sustained spells, durations, persistent damage over time and spells cast over two turns are worth more over a whole fight.
+- [ ] **Fight more than one enemy.** Area spells hit only one enemy today.
+- [ ] **Heighten imported focus spells automatically** to the caster's level (they import at their base rank; see "Known limits" under the importer).
+- [ ] **More party examples** in `examples/`, covering more classes and levels.
+- [ ] **An HTML page to build and compare scenarios,** so trying a party, a target and a plan doesn't mean editing C++.
 
 ## License
 - **Code**: MIT, see [LICENSE](LICENSE). This covers the source code, build files and documentation written for this project.
