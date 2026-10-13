@@ -4,7 +4,7 @@
  * @details Results are checked against hand calculations.
  */
 
-#include "vendor/doctest.h"
+#include <doctest.h>
 
 #include "ContentLibrary.h"
 #include "Scenario.h"

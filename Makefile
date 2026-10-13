@@ -1,5 +1,11 @@
 CXX      ?= g++
 CXXFLAGS ?= -std=c++20 -O2 -Wall -Wextra -pedantic -Wno-missing-field-initializers
+# Warnings fail the build; WERROR=0 turns them back into messages (say, while a newer compiler's warning is fixed).
+WERROR   ?= 1
+ifeq ($(WERROR),1)
+CXXFLAGS += -Werror
+endif
+
 BUILD    := build
 
 # Each library group has its headers in lib/<group>/inc and its sources in lib/<group>/src.
@@ -44,7 +50,8 @@ $(IMPORTER): $(OBJ) $(TOOL_OBJ)
 
 $(BUILD)/examples/%.o: CPPFLAGS += -Iexamples/inc
 $(BUILD)/tools/%.o: CPPFLAGS += -Itools/inc
-$(BUILD)/tests/%.o: CPPFLAGS += -Itools/inc
+# doctest is included as <doctest.h> through -isystem, so warnings from it don't count as ours.
+$(BUILD)/tests/%.o: CPPFLAGS += -Itools/inc -isystem tests/vendor
 
 # Objects also depend on this Makefile, so changing a flag rebuilds them. Each compile records its
 # command in <object>.json for the compilation database below.

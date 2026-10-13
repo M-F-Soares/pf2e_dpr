@@ -3,7 +3,7 @@
  * @brief   Tests of the Foundry VTT spell converter (tools/), on small spells shaped like Foundry's data.
  */
 
-#include "vendor/doctest.h"
+#include <doctest.h>
 
 #include "ContentLibrary.h"
 #include "FoundryImport.h"

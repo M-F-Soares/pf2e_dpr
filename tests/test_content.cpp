@@ -3,7 +3,7 @@
  * @brief   Tests of the content library: loading, validation, presets, heightening, variants and features.
  */
 
-#include "vendor/doctest.h"
+#include <doctest.h>
 
 #include "ContentLibrary.h"
 #include "Scenario.h"

@@ -3,7 +3,7 @@
  * @brief   Unit tests for the rules building blocks: checks, stacking, conditions and damage.
  */
 
-#include "vendor/doctest.h"
+#include <doctest.h>
 
 #include "Check.h"
 #include "Condition.h"
