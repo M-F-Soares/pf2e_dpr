@@ -27,11 +27,11 @@ CONVERTER   := $(BUILD)/tools/src/FoundryImport.o
 IMPORTER    := $(BUILD)/import-foundry
 COMPDB      := $(BUILD)/compile_commands.json
 
-# make import: Foundry VTT's PF2e data, sparse-cloned (spells only) into a cache that make clean keeps.
+# make import: Foundry VTT's PF2e data, sparse-cloned (spells and spell effects) into a cache make clean keeps.
 # FOUNDRY=<path> uses an existing clone instead, and nothing is fetched.
 FOUNDRY_URL   := https://github.com/foundryvtt/pf2e.git
 FOUNDRY_CACHE := .cache/foundry-pf2e
-FOUNDRY_PATHS := packs/pf2e/spells
+FOUNDRY_PATHS := packs/pf2e/spells packs/pf2e/spell-effects
 # The commit of a clone, for the import report.
 revision = $$(git -C "$(1)" rev-parse --short HEAD 2>/dev/null || echo unknown)
 
@@ -81,6 +81,7 @@ ifdef FOUNDRY
 else
 	@if [ -d $(FOUNDRY_CACHE)/.git ]; then \
 		echo "Updating $(FOUNDRY_CACHE)"; \
+		git -C $(FOUNDRY_CACHE) sparse-checkout set $(FOUNDRY_PATHS) && \
 		git -C $(FOUNDRY_CACHE) fetch --quiet --depth 1 origin HEAD && \
 		git -C $(FOUNDRY_CACHE) reset --quiet --hard FETCH_HEAD; \
 	else \
