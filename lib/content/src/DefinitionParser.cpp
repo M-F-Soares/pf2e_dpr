@@ -55,14 +55,16 @@ constexpr std::array kConditionKinds{
     ConditionKind::Frightened, ConditionKind::Sickened,  ConditionKind::Clumsy,     ConditionKind::Enfeebled,
     ConditionKind::Drained,    ConditionKind::Stupefied, ConditionKind::OffGuard,   ConditionKind::Prone,
     ConditionKind::Grabbed,    ConditionKind::Restrained, ConditionKind::Concealed, ConditionKind::Hidden,
-    ConditionKind::Dazzled,    ConditionKind::Slowed,    ConditionKind::Stunned,    ConditionKind::Quickened};
+    ConditionKind::Dazzled,    ConditionKind::Slowed,    ConditionKind::Stunned,    ConditionKind::Quickened,
+    ConditionKind::Blinded,    ConditionKind::Confused,  ConditionKind::Paralyzed,  ConditionKind::Unconscious,
+    ConditionKind::Fatigued,   ConditionKind::Encumbered};
 
 /** The damage types an attack can deal (Physical and All only name resistances). */
 constexpr std::array kDamageTypes{
     DamageType::Bludgeoning, DamageType::Piercing, DamageType::Slashing, DamageType::Fire,
     DamageType::Cold,        DamageType::Electricity, DamageType::Acid,  DamageType::Sonic,
     DamageType::Vitality,    DamageType::Void,     DamageType::Force,    DamageType::Spirit,
-    DamageType::Mental,      DamageType::Poison,   DamageType::Bleed};
+    DamageType::Mental,      DamageType::Poison,   DamageType::Bleed,    DamageType::Untyped};
 
 /** Every skill, for name lookups. */
 constexpr std::array kSkills{

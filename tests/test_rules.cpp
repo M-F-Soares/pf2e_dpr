@@ -109,6 +109,55 @@ TEST_CASE("conditions: status penalties overlap, off-guard is circumstance")
     CHECK(state.ModifierTotal(kEnemyIndex, RollQuery{Tag::Save | Tag::Check | Tag::Will | Tag::Wis, 1}) == -1);
 }
 
+TEST_CASE("conditions: blinded, confused, paralyzed, unconscious, fatigued and encumbered")
+{
+    RollQuery ac{Tag::AC | Tag::DC | Tag::Dex, 1};
+    RollQuery reflexSave{Tag::Save | Tag::Check | Tag::Ref | Tag::Dex, 1};
+    RollQuery willDC{Tag::Will | Tag::DC | Tag::Wis, 1};
+    auto with = [](ConditionKind kind) {
+        BattleState state;
+        state.creatures.resize(2);
+        state.AddCondition(kEnemyIndex, kind, 1, {});
+        return state;
+    };
+
+    // Blinded, confused and paralyzed creatures are off-guard, which doesn't stack with being off-guard.
+    for (ConditionKind kind : {ConditionKind::Blinded, ConditionKind::Confused, ConditionKind::Paralyzed})
+    {
+        CAPTURE(ToString(kind));
+        BattleState state = with(kind);
+        CHECK(state.ModifierTotal(kEnemyIndex, ac) == -2);
+        CHECK(state.IsOffGuardTo(kEnemyIndex, 1, Tag::Melee));
+        state.AddCondition(kEnemyIndex, ConditionKind::OffGuard, 1, {});
+        CHECK(state.ModifierTotal(kEnemyIndex, ac) == -2);
+    }
+
+    BattleState unconscious = with(ConditionKind::Unconscious);
+    CHECK(unconscious.ModifierTotal(kEnemyIndex, ac) == -6);  // off-guard -2, and -4 status
+    CHECK(unconscious.ModifierTotal(kEnemyIndex, reflexSave) == -4);
+    CHECK(unconscious.ModifierTotal(kEnemyIndex, willDC) == 0);
+    CHECK(unconscious.IsOffGuardTo(kEnemyIndex, 1, Tag::Ranged));
+
+    // Fatigued: -1 to AC and saves, and so to the DCs made from them.
+    BattleState fatigued = with(ConditionKind::Fatigued);
+    CHECK(fatigued.ModifierTotal(kEnemyIndex, ac) == -1);
+    CHECK(fatigued.ModifierTotal(kEnemyIndex, reflexSave) == -1);
+    CHECK(fatigued.ModifierTotal(kEnemyIndex, willDC) == -1);
+    CHECK_FALSE(fatigued.IsOffGuardTo(kEnemyIndex, 1, Tag::Melee));
+
+    // Encumbered is clumsy 1, a status penalty that doesn't stack with clumsy 2.
+    BattleState encumbered = with(ConditionKind::Encumbered);
+    CHECK(encumbered.ModifierTotal(kEnemyIndex, reflexSave) == -1);
+    CHECK(encumbered.ModifierTotal(kEnemyIndex, willDC) == 0);
+    encumbered.AddCondition(kEnemyIndex, ConditionKind::Clumsy, 2, {});
+    CHECK(encumbered.ModifierTotal(kEnemyIndex, ac) == -2);
+
+    // Paralyzed and unconscious creatures can't act.
+    CHECK(with(ConditionKind::Paralyzed).ActionsPerTurn(kEnemyIndex) == 0);
+    CHECK(with(ConditionKind::Unconscious).ActionsPerTurn(kEnemyIndex) == 0);
+    CHECK(with(ConditionKind::Confused).ActionsPerTurn(kEnemyIndex) == 3);
+}
+
 TEST_CASE("conditions: same condition keeps the higher value")
 {
     BattleState state;
@@ -159,6 +208,19 @@ TEST_CASE("damage: resistance and weakness are exact over the dice")
     immune.immunities = {"fire"};
     CHECK(ExpectedDamage({Damage(1, 6, 0, DamageType::Fire), Damage(1, 6, 0, DamageType::Slashing)},
                          DamageScale::Normal, immune) == doctest::Approx(3.5));
+}
+
+TEST_CASE("damage: untyped damage only meets resistances and weaknesses to all damage")
+{
+    std::vector<DamageComponent> blast = {Damage(0, 0, 10, DamageType::Untyped)};
+    DamageDefenses fireAndPhysical;
+    fireAndPhysical.resistances = {{DamageType::Fire, 5}, {DamageType::Physical, 5}};
+    fireAndPhysical.weaknesses = {{DamageType::Fire, 5}};
+    CHECK(ExpectedDamage(blast, DamageScale::Normal, fireAndPhysical) == doctest::Approx(10.0));
+
+    DamageDefenses all;
+    all.resistances = {{DamageType::All, 3}};
+    CHECK(ExpectedDamage(blast, DamageScale::Normal, all) == doctest::Approx(7.0));
 }
 
 TEST_CASE("damage: physical resistance, bypass and per-type application")

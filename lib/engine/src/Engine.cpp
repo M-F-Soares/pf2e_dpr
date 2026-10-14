@@ -458,11 +458,12 @@ DegreeDist Engine::Roll(const Action& action, const BattleState& before, BattleS
     if (vsEnemy)
         after.ConsumeUses(kEnemyIndex, enemyUsed);
 
-    // Concealed / hidden targets (or a dazzled actor): failing the flat check wastes the action.
+    // Concealed / hidden targets (or a dazzled or blinded actor): failing the flat check wastes the action.
     if (vsEnemy && check.targeted)
     {
         int flatDC = 0;
-        if (before.ConditionValue(kEnemyIndex, ConditionKind::Hidden) > 0)
+        if (before.ConditionValue(kEnemyIndex, ConditionKind::Hidden) > 0 ||
+            before.ConditionValue(actorIndex, ConditionKind::Blinded) > 0)
             flatDC = 11;
         else if (before.ConditionValue(kEnemyIndex, ConditionKind::Concealed) > 0 ||
                  before.ConditionValue(actorIndex, ConditionKind::Dazzled) > 0)

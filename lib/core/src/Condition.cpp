@@ -25,6 +25,12 @@ const char* ToString(ConditionKind kind)
     case ConditionKind::Slowed: return "slowed";
     case ConditionKind::Stunned: return "stunned";
     case ConditionKind::Quickened: return "quickened";
+    case ConditionKind::Blinded: return "blinded";
+    case ConditionKind::Confused: return "confused";
+    case ConditionKind::Paralyzed: return "paralyzed";
+    case ConditionKind::Unconscious: return "unconscious";
+    case ConditionKind::Fatigued: return "fatigued";
+    case ConditionKind::Encumbered: return "encumbered";
     }
     return "?";
 }
@@ -74,10 +80,20 @@ std::vector<Modifier> ConditionModifiers(ConditionKind kind, int value)
     case ConditionKind::OffGuard:
     case ConditionKind::Grabbed:
     case ConditionKind::Restrained:
+    case ConditionKind::Blinded:
+    case ConditionKind::Confused:
+    case ConditionKind::Paralyzed:
         return {OffGuard("off-guard")};
     case ConditionKind::Prone:
         return {OffGuard("off-guard"),
                 Modifier{"prone", BonusType::Circumstance, -2, Select({Tag::AttackRoll})}};
+    case ConditionKind::Unconscious:
+        return {OffGuard("off-guard"), StatusPenalty(kind, 4, Select({Tag::AC, Tag::Perception, Tag::Ref}))};
+    case ConditionKind::Fatigued:
+        // A penalty to a save is also one to the DC made from it.
+        return {StatusPenalty(kind, 1, Select({Tag::AC, Tag::Fort, Tag::Ref, Tag::Will}))};
+    case ConditionKind::Encumbered:
+        return {StatusPenalty(kind, 1, Select({Tag::Dex}))};
     default:
         return {};
     }
@@ -92,6 +108,9 @@ int ConditionActionDelta(ConditionKind kind, int value)
         return -value;
     case ConditionKind::Quickened:
         return value > 0 ? 1 : 0;
+    case ConditionKind::Paralyzed:
+    case ConditionKind::Unconscious:
+        return -3;
     default:
         return 0;
     }
