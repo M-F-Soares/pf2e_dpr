@@ -271,12 +271,13 @@ TEST_CASE("content: Heightened (Nth) entries apply from their rank on")
         ActionPtr heroism = ProjectContent().Use("Heroism", caster, {.rank = rank, .ally = &ally});
         return heroism->outcomes[kSuccess].modifiers.at(0).mod.value;
     };
-    CHECK(heroismBonus(1) == 1);
+    CHECK(heroismBonus(3) == 1);
     CHECK(heroismBonus(5) == 1);
     CHECK(heroismBonus(6) == 2);
     CHECK(heroismBonus(8) == 2);
     CHECK(heroismBonus(9) == 3);
     CHECK(heroismBonus(10) == 3);
+    CHECK_THROWS_WITH_AS(heroismBonus(2), doctest::Contains("can't be cast at rank 2 (its rank is 3"), ContentError);
 }
 
 TEST_CASE("content: variants change the cost, name and amounts")

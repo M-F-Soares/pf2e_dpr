@@ -10,9 +10,11 @@
 #include <algorithm>
 #include <array>
 #include <cctype>
+#include <cmath>
 #include <map>
 #include <optional>
 #include <regex>
+#include <set>
 #include <utility>
 
 namespace
@@ -134,6 +136,48 @@ std::string PlainText(std::string html)
 }
 
 /**
+ * @brief   A link to a condition: `@UUID[Compendium.pf2e.conditionitems.Item.Frightened]{Frightened 2}`.
+ * @return  The pattern; group 1 is the condition's name, group 2 the label (with its value), if any.
+ */
+const std::regex& ConditionLink()
+{
+    static const std::regex pattern(R"(@UUID\[Compendium\.pf2e\.conditionitems\.Item\.([^\]]+)\](?:\{([^}]*)\})?)");
+    return pattern;
+}
+
+/**
+ * @brief   A condition written without a link, in lowercase text: only the ones the engine models
+ *          (ConditionKind), so nothing else matches.
+ * @return  The pattern; group 1 is the condition, group 2 its value, if any.
+ */
+const std::regex& ConditionWord()
+{
+    static const std::regex pattern(R"(\b(frightened|sickened|clumsy|enfeebled|drained|stupefied|off-guard|)"
+                                    R"(prone|grabbed|restrained|concealed|hidden|dazzled|slowed|stunned|)"
+                                    R"(quickened)(?: (\d+))?\b)");
+    return pattern;
+}
+
+/**
+ * @brief   A condition effect from a condition link.
+ * @param   [in] link - A match of ConditionLink().
+ * @return  {"condition": name, "value": N}, with the value only if the label has one.
+ */
+Json LinkedCondition(const std::smatch& link)
+{
+    static const std::regex trailingNumber(R"((\d+)\s*$)");
+    std::string name = link[1].str();
+    std::transform(name.begin(), name.end(), name.begin(),
+                   [](unsigned char character) { return static_cast<char>(std::tolower(character)); });
+    Json condition = {{"condition", name}};
+    std::smatch number;
+    std::string label = link[2].str();
+    if (std::regex_search(label, number, trailingNumber))
+        condition["value"] = std::stoi(number[1].str());
+    return condition;
+}
+
+/**
  * @brief   One damage (or healing) roll of a spell.
  */
 struct DamageEntry
@@ -237,13 +281,6 @@ struct DegreeEffects
  */
 DegreeEffects ReadDegree(const std::string& html, const std::string& heading)
 {
-    static const std::regex conditionLink(
-        R"(@UUID\[Compendium\.pf2e\.conditionitems\.Item\.([^\]]+)\](?:\{([^}]*)\})?)");
-    static const std::regex trailingNumber(R"((\d+)\s*$)");
-    // Conditions written without a link; only the ones the engine models (ConditionKind), so nothing else matches.
-    static const std::regex conditionWord(R"(\b(frightened|sickened|clumsy|enfeebled|drained|stupefied|off-guard|)"
-                                          R"(prone|grabbed|restrained|concealed|hidden|dazzled|slowed|stunned|)"
-                                          R"(quickened)(?: (\d+))?\b)");
     static const std::regex damagePhrase(R"(\b(?:takes|is dealt|deals|you deal) (no|half|full|double) damage\b)");
     static const std::array fillers{
         std::regex(R"(\bfor (?:\d+|one|two|three|four|five|ten) (?:rounds?|minutes?|hours?)\b)"),
@@ -258,28 +295,20 @@ DegreeEffects ReadDegree(const std::string& html, const std::string& heading)
     DegreeEffects effects;
     std::string rest;
     auto last = html.cbegin();
-    for (std::sregex_iterator link(html.begin(), html.end(), conditionLink), end; link != end; ++link)
+    for (std::sregex_iterator link(html.begin(), html.end(), ConditionLink()), end; link != end; ++link)
     {
         const std::smatch& match = *link;
         rest.append(last, match[0].first);
         rest += " ";
         last = match[0].second;
-        std::string name = match[1].str();
-        std::transform(name.begin(), name.end(), name.begin(),
-                       [](unsigned char character) { return static_cast<char>(std::tolower(character)); });
-        Json condition = {{"condition", name}};
-        std::smatch number;
-        std::string label = match[2].str();
-        if (std::regex_search(label, number, trailingNumber))
-            condition["value"] = std::stoi(number[1].str());
-        effects.conditions.push_back(condition);
+        effects.conditions.push_back(LinkedCondition(match));
     }
     rest.append(last, html.cend());
 
     std::string text = PlainText(rest);
     std::string withoutConditions;
     auto unlinkedLast = text.cbegin();
-    for (std::sregex_iterator word(text.begin(), text.end(), conditionWord), end; word != end; ++word)
+    for (std::sregex_iterator word(text.begin(), text.end(), ConditionWord()), end; word != end; ++word)
     {
         const std::smatch& match = *word;
         withoutConditions.append(unlinkedLast, match[0].first);
@@ -297,7 +326,7 @@ DegreeEffects ReadDegree(const std::string& html, const std::string& heading)
     if (std::regex_search(text, damage, damagePhrase))
     {
         std::string scale = damage[1].str();
-        effects.damage = scale == "full" ? "normal" : scale;
+        effects.damage = scale == "full" ? "normal" : scale == "no" ? "none" : scale;
         text = damage.prefix().str() + " " + damage.suffix().str();
         if (std::regex_search(text, damagePhrase))
             SkipSpell("outcome text isn't understood", heading + ": damage is described twice");
@@ -437,13 +466,667 @@ void ConvertHeightening(const Json& system, const std::vector<DamageEntry>& entr
 }
 
 /**
+ * @brief   Thrown when a formula uses something the evaluator doesn't support.
+ */
+struct UnsupportedFormula
+{
+};
+
+/**
+ * @brief   A recursive-descent evaluator for the formulas in Foundry's rules.
+ */
+class FormulaEvaluator
+{
+public:
+    /**
+     * @brief   Prepares to evaluate a formula.
+     * @param   [in] formula - The formula.
+     * @param   [in] rank - The value of `@item.level` and `@item.rank`.
+     */
+    FormulaEvaluator(const std::string& formula, int rank) : m_text(formula), m_rank(rank) {}
+
+    /**
+     * @brief   Evaluates the whole formula.
+     * @return  The value.
+     * @throws  UnsupportedFormula if it uses anything unsupported, or isn't one complete expression.
+     */
+    double Evaluate()
+    {
+        double value = Sum();
+        SkipSpaces();
+        if (m_at != m_text.size())
+            throw UnsupportedFormula{};
+        return value;
+    }
+
+private:
+    /**
+     * @brief   Moves past spaces.
+     */
+    void SkipSpaces()
+    {
+        while (m_at < m_text.size() && std::isspace(static_cast<unsigned char>(m_text[m_at])))
+            ++m_at;
+    }
+
+    /**
+     * @brief   Moves past a character if it's next.
+     * @param   [in] wanted - The character.
+     * @return  True if it was next.
+     */
+    bool Accept(char wanted)
+    {
+        SkipSpaces();
+        if (m_at < m_text.size() && m_text[m_at] == wanted)
+        {
+            ++m_at;
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * @brief   Moves past a character that must be next.
+     * @param   [in] wanted - The character.
+     * @throws  UnsupportedFormula if it isn't next.
+     */
+    void Expect(char wanted)
+    {
+        if (!Accept(wanted))
+            throw UnsupportedFormula{};
+    }
+
+    /**
+     * @brief   Reads terms joined by + and -.
+     * @return  Their value.
+     */
+    double Sum()
+    {
+        double value = Product();
+        for (;;)
+        {
+            if (Accept('+'))
+                value += Product();
+            else if (Accept('-'))
+                value -= Product();
+            else
+                return value;
+        }
+    }
+
+    /**
+     * @brief   Reads factors joined by * and /.
+     * @return  Their value.
+     * @throws  UnsupportedFormula on a division by zero.
+     */
+    double Product()
+    {
+        double value = Unary();
+        for (;;)
+        {
+            if (Accept('*'))
+                value *= Unary();
+            else if (Accept('/'))
+            {
+                double divisor = Unary();
+                if (divisor == 0)
+                    throw UnsupportedFormula{};
+                value /= divisor;
+            }
+            else
+                return value;
+        }
+    }
+
+    /**
+     * @brief   Reads a factor, with an optional minus sign.
+     * @return  Its value.
+     */
+    double Unary()
+    {
+        return Accept('-') ? -Unary() : Primary();
+    }
+
+    /**
+     * @brief   Reads a number, the spell's rank, a function call, or an expression in parentheses.
+     * @return  Its value.
+     * @throws  UnsupportedFormula for anything else.
+     */
+    double Primary()
+    {
+        if (Accept('('))
+        {
+            double value = Sum();
+            Expect(')');
+            return value;
+        }
+        SkipSpaces();
+        std::size_t start = m_at;
+        auto isDigit = [&](std::size_t at) { return std::isdigit(static_cast<unsigned char>(m_text[at])) != 0; };
+        if (m_at < m_text.size() && isDigit(m_at))
+        {
+            while (m_at < m_text.size() && (isDigit(m_at) || m_text[m_at] == '.'))
+                ++m_at;
+            return std::stod(m_text.substr(start, m_at - start));
+        }
+        while (m_at < m_text.size() &&
+               (std::isalnum(static_cast<unsigned char>(m_text[m_at])) || m_text[m_at] == '@' || m_text[m_at] == '.'))
+            ++m_at;
+        std::string name = m_text.substr(start, m_at - start);
+        if (name == "@item.level" || name == "@item.rank")
+            return m_rank;
+        if (name.empty() || name.front() == '@')
+            throw UnsupportedFormula{};
+        Expect('(');
+        std::vector<double> arguments{Sum()};
+        while (Accept(','))
+            arguments.push_back(Sum());
+        Expect(')');
+        return Call(name, arguments);
+    }
+
+    /**
+     * @brief   Applies one of the supported functions.
+     * @param   [in] name - The function.
+     * @param   [in] arguments - Its arguments.
+     * @return  Its value; comparisons give 1 or 0.
+     * @throws  UnsupportedFormula for any other function, or the wrong number of arguments.
+     */
+    static double Call(const std::string& name, const std::vector<double>& arguments)
+    {
+        std::size_t count = arguments.size();
+        if (name == "ternary" && count == 3)
+            return arguments[0] != 0 ? arguments[1] : arguments[2];
+        if (count == 2)
+        {
+            double left = arguments[0];
+            double right = arguments[1];
+            if (name == "gte")
+                return left >= right;
+            if (name == "gt")
+                return left > right;
+            if (name == "lte")
+                return left <= right;
+            if (name == "lt")
+                return left < right;
+            if (name == "eq")
+                return left == right;
+        }
+        if (name == "ceil" && count == 1)
+            return std::ceil(arguments[0]);
+        if (name == "floor" && count == 1)
+            return std::floor(arguments[0]);
+        if (name == "min")
+            return *std::min_element(arguments.begin(), arguments.end());
+        if (name == "max")
+            return *std::max_element(arguments.begin(), arguments.end());
+        throw UnsupportedFormula{};
+    }
+
+    const std::string& m_text;  /**< The formula. */
+    std::size_t m_at = 0;       /**< Where reading is. */
+    int m_rank;                 /**< The spell rank. */
+};
+
+/**
+ * @brief   Who a buff goes to, from the spell's target and area.
+ * @param   [in] system - The spell's "system" object.
+ * @return  "ally" (one creature or ally), "actor" (no target or area: the caster), "allies" (an area for you
+ *          and your allies); "" for anything else, such as several creatures, minions or objects.
+ */
+std::string Recipient(const Json& system)
+{
+    static const std::regex oneCreature(R"(1 (?:willing )?(?:living )?(?:creature|ally))");
+    static const std::regex allies(R"(\ballies\b)");
+    std::string target = Find(system, "target") ? PlainText(TextAt(system.at("target"), "value")) : "";
+    bool area = Find(system, "area") != nullptr;
+    if (std::regex_match(target, oneCreature))
+        return "ally";
+    if (target.empty() && !area)
+        return "actor";
+    if (target == "you")
+        return "actor";
+    if (area && (target.empty() || std::regex_search(target, allies)))
+        return "allies";
+    return "";
+}
+
+/**
+ * @brief   Our "appliesTo" entries for one of Foundry's modifier selectors.
+ * @param   [in] selector - Foundry's selector, e.g. "attack-roll".
+ * @return  The tag combinations, as in the hand-written definitions; empty if we can't express it.
+ */
+std::vector<std::string> OurSelectors(const std::string& selector)
+{
+    static const std::map<std::string, std::vector<std::string>> table{
+        {"attack", {"AttackRoll"}},
+        {"attack-roll", {"AttackRoll"}},
+        {"spell-attack-roll", {"AttackRoll|Spell"}},
+        {"damage", {"Damage"}},
+        {"strike-damage", {"Damage|Melee", "Damage|Ranged"}},
+        {"melee-strike-damage", {"Damage|Melee"}},
+        {"melee-damage", {"Damage|Melee"}},
+        {"ranged-strike-damage", {"Damage|Ranged"}},
+        {"spell-damage", {"Damage|Spell"}},
+        {"skill-check", {"Skill|Check"}},
+        {"perception", {"Perception|Check"}},
+        {"saving-throw", {"Save"}},
+        {"fortitude", {"Fort"}},
+        {"reflex", {"Ref"}},
+        {"will", {"Will"}},
+        {"ac", {"AC"}},
+    };
+    auto found = table.find(selector);
+    return found == table.end() ? std::vector<std::string>{} : found->second;
+}
+
+/**
+ * @brief   Kinds of effect the converter leaves out, to name the reason when nothing is left.
+ */
+enum class LeftOut
+{
+    Conditional,  /**< Applies only in some cases (a predicate). */
+    OneSkill,     /**< A bonus to one skill, which a selector can't target. */
+    Defensive,    /**< Temporary HP, resistance, speed, senses and the like, which one round doesn't use. */
+};
+
+/**
+ * @brief   A flat bonus or penalty kept from a spell effect, before its value is worked out for each rank.
+ */
+struct EffectModifier
+{
+    std::string type;                    /**< "status", "circumstance", "item" or "untyped". */
+    std::vector<std::string> appliesTo;  /**< Our tag combinations. */
+    Json value;                          /**< A number, or a formula on the spell's rank. */
+};
+
+/**
+ * @brief   What a spell's linked spell effects do that can be converted, and what was left out.
+ */
+struct EffectContents
+{
+    std::vector<EffectModifier> modifiers;  /**< Unconditional flat bonuses and penalties we can express. */
+    std::vector<std::string> conditions;    /**< Conditions the effects grant. */
+    std::vector<std::string> leftOut;       /**< What was left out, for warnings. */
+    std::set<LeftOut> leftOutKinds;         /**< The kinds of what was left out. */
+};
+
+/**
+ * @brief   Reads the rules of one spell effect.
+ * @param   [in] effect - The parsed spell effect.
+ * @param   [in, out] contents - Gets its modifiers and conditions, and what was left out.
+ * @throws  Skip if a rule can't be converted and can't be left out either.
+ */
+void ReadEffectRules(const Json& effect, EffectContents& contents)
+{
+    static const std::set<std::string> skills{
+        "acrobatics", "arcana",   "athletics",   "crafting",    "deception", "diplomacy", "intimidation", "medicine",
+        "nature",     "occultism", "performance", "religion",   "society",   "stealth",   "survival",     "thievery"};
+    static const std::set<std::string> notModeled{"land-speed",  "all-speeds",   "speed",           "fly-speed",
+                                                   "swim-speed",  "climb-speed",  "burrow-speed",    "initiative",
+                                                   "healing-received"};
+    static const std::map<std::string, std::string> defensiveRules{
+        {"TempHP", "temporary Hit Points"}, {"Resistance", "a resistance"}, {"BaseSpeed", "a Speed"},
+        {"Sense", "a sense"},               {"FastHealing", "fast healing"}, {"Immunity", "an immunity"}};
+    const std::string conditionPrefix = "Compendium.pf2e.conditionitems.Item.";
+
+    const Json* system = Find(effect, "system");
+    const Json* rules = system ? Find(*system, "rules") : nullptr;
+    if (!rules || !rules->is_array())
+        return;
+    for (const Json& rule : *rules)
+    {
+        std::string key = TextAt(rule, "key");
+        const Json* predicate = Find(rule, "predicate");
+        bool conditional = predicate && !predicate->empty();
+        std::vector<std::string> selectors;
+        if (const Json* selector = Find(rule, "selector"))
+        {
+            if (selector->is_string())
+                selectors.push_back(selector->get<std::string>());
+            else if (selector->is_array())
+                for (const Json& item : *selector)
+                    if (item.is_string())
+                        selectors.push_back(item.get<std::string>());
+        }
+        std::string selectorText;
+        for (const std::string& selector : selectors)
+            selectorText += (selectorText.empty() ? "" : ", ") + selector;
+
+        if (key == "Note" || key == "RollOption" || key == "Aura")
+            continue;  // text, toggles, and aura targeting (the spell's area already says who it reaches)
+        if (conditional && (key == "FlatModifier" || key == "DamageDice" || key == "AdjustModifier" ||
+                            key == "GrantItem"))
+        {
+            contents.leftOut.push_back("a conditional " + key + " rule" +
+                                       (selectorText.empty() ? "" : " (" + selectorText + ")"));
+            contents.leftOutKinds.insert(LeftOut::Conditional);
+            continue;
+        }
+        if (auto defensive = defensiveRules.find(key); defensive != defensiveRules.end())
+        {
+            contents.leftOut.push_back(defensive->second);
+            contents.leftOutKinds.insert(LeftOut::Defensive);
+            continue;
+        }
+        if (key == "BattleForm")
+            SkipSpell("battle form (polymorph; not modeled)");
+        if (key == "ChoiceSet")
+            SkipSpell("asks for a choice when cast");
+        if (key == "GrantItem")
+        {
+            std::string uuid = TextAt(rule, "uuid");
+            if (uuid.rfind(conditionPrefix, 0) != 0)
+                SkipSpell("grants an item or action, which isn't converted", uuid);
+            std::string condition = uuid.substr(conditionPrefix.size());
+            std::transform(condition.begin(), condition.end(), condition.begin(),
+                           [](unsigned char character) { return static_cast<char>(std::tolower(character)); });
+            contents.conditions.push_back(condition);
+            continue;
+        }
+        if (key != "FlatModifier")
+            SkipSpell("uses Foundry's " + key + " rule, which isn't converted");
+
+        if (Find(rule, "damageType") || Find(rule, "damageCategory"))
+            SkipSpell("adds bonus damage of a specific type or category, which isn't converted");
+        std::string type = TextAt(rule, "type");
+        if (type.empty())
+            type = "untyped";
+        if (type != "status" && type != "circumstance" && type != "item" && type != "untyped")
+            SkipSpell("uses a kind of bonus that isn't converted", type);
+        EffectModifier modifier{type, {}, Find(rule, "value") ? rule.at("value") : Json()};
+        for (const std::string& selector : selectors)
+        {
+            std::vector<std::string> ours = OurSelectors(selector);
+            if (!ours.empty())
+                modifier.appliesTo.insert(modifier.appliesTo.end(), ours.begin(), ours.end());
+            else if (skills.count(selector) > 0)
+            {
+                contents.leftOut.push_back("a bonus to " + selector + " (one skill can't be targeted)");
+                contents.leftOutKinds.insert(LeftOut::OneSkill);
+            }
+            else if (notModeled.count(selector) > 0)
+            {
+                contents.leftOut.push_back("a bonus to " + selector + " (not modeled)");
+                contents.leftOutKinds.insert(LeftOut::Defensive);
+            }
+            else if (!selector.empty() && selector.front() == '{')
+                SkipSpell("asks for a choice when cast");
+            else
+                SkipSpell("adds a bonus to something that isn't converted", selector);
+        }
+        if (!modifier.appliesTo.empty())
+            contents.modifiers.push_back(modifier);
+    }
+}
+
+/**
+ * @brief   The effects a buff gives at one rank.
+ * @param   [in] contents - What its spell effects do.
+ * @param   [in] recipient - Who gets them: "ally", "actor" or "allies".
+ * @param   [in] spellName - The spell's name, the source of its modifiers.
+ * @param   [in] rank - The rank the spell is cast at.
+ * @return  Our effects list.
+ * @throws  Skip if a value isn't a whole number, or depends on something other than the rank.
+ */
+Json BuffEffects(const EffectContents& contents, const std::string& recipient, const std::string& spellName,
+                 int rank)
+{
+    Json effects = Json::array();
+    for (const std::string& condition : contents.conditions)
+        effects.push_back({{"condition", condition}, {"on", recipient}});
+    for (std::size_t index = 0; index < contents.modifiers.size(); ++index)
+    {
+        const EffectModifier& modifier = contents.modifiers[index];
+        std::optional<double> value;
+        if (modifier.value.is_number())
+            value = modifier.value.get<double>();
+        else if (modifier.value.is_string())
+            value = EvaluateFoundryFormula(modifier.value.get<std::string>(), rank);
+        if (!value)
+            SkipSpell("a bonus depends on the caster or on a choice", modifier.value.dump());
+        if (std::floor(*value) != *value)
+            SkipSpell("a bonus isn't a whole number", modifier.value.dump());
+        Json effect = {{"modifier", modifier.type},
+                       {"value", static_cast<int>(*value)},
+                       {"on", recipient},
+                       {"appliesTo", modifier.appliesTo}};
+        // The same source never stacks, so a second modifier from the same spell needs its own.
+        if (index > 0)
+            effect["source"] = spellName + " (" + std::to_string(index + 1) + ")";
+        effects.push_back(effect);
+    }
+    return effects;
+}
+
+/**
+ * @brief   Converts a spell from the spell effects it links to.
+ * @details The effects at the spell's rank become "effects"; each rank whose values differ gets a
+ *          "Heightened (Nth)" entry with the whole list, as in the hand-written Heroism.
+ * @param   [in] effectNames - The linked effects' names.
+ * @param   [in] spellEffects - Foundry's spell effects, by name.
+ * @param   [in] system - The spell's "system" object.
+ * @param   [in] baseRank - The spell's rank (1 for a cantrip).
+ * @param   [in, out] definition - Gets "effects" and "heightened".
+ * @param   [in, out] warnings - Gets what was left out.
+ * @return  True if converted; false if the effects have no rules that apply (some keep only an aura there, and
+ *          the description says what it does).
+ * @throws  Skip if an effect is missing, a rule can't be converted, only rules that aren't converted are left,
+ *          or the spell targets something other than one ally, yourself or your allies.
+ */
+bool ConvertSpellEffects(const std::vector<std::string>& effectNames,
+                         const std::map<std::string, std::string>& spellEffects, const Json& system, int baseRank,
+                         Json& definition, std::vector<std::string>& warnings)
+{
+    EffectContents contents;
+    for (const std::string& name : effectNames)
+    {
+        auto found = spellEffects.find(name);
+        if (found == spellEffects.end())
+            SkipSpell("links a spell effect that wasn't found", name);
+        ReadEffectRules(Json::parse(found->second), contents);
+    }
+    if (contents.modifiers.empty() && contents.conditions.empty())
+    {
+        std::string detail;
+        for (const std::string& part : contents.leftOut)
+            detail += (detail.empty() ? "" : "; ") + part;
+        if (contents.leftOutKinds.size() > 1)
+            SkipSpell("only effects that aren't converted (conditional, one skill, defensive or movement)", detail);
+        if (contents.leftOutKinds.count(LeftOut::OneSkill) > 0)
+            SkipSpell("only a bonus to a specific skill (one skill can't be targeted)", detail);
+        if (contents.leftOutKinds.count(LeftOut::Defensive) > 0)
+            SkipSpell("only defensive or movement effects (not modeled)", detail);
+        if (contents.leftOutKinds.count(LeftOut::Conditional) > 0)
+            SkipSpell("only bonuses that apply in some cases (not converted)", detail);
+        return false;
+    }
+    std::string recipient = Recipient(system);
+    if (recipient.empty())
+        SkipSpell("targets something other than one ally, yourself or your allies",
+                  Find(system, "target") ? TextAt(system.at("target"), "value") : "");
+
+    std::string spellName = definition.at("name").get<std::string>();
+    Json previous = BuffEffects(contents, recipient, spellName, baseRank);
+    definition["effects"] = previous;
+    Json heightened = Json::object();
+    for (int rank = baseRank + 1; rank <= 10; ++rank)
+    {
+        Json effects = BuffEffects(contents, recipient, spellName, rank);
+        if (effects != previous)
+            heightened[std::to_string(rank)] = {{"effects", effects}};
+        previous = effects;
+    }
+    if (!heightened.empty())
+        definition["heightened"] = heightened;
+    for (const std::string& part : contents.leftOut)
+        warnings.push_back("left out: " + part);
+    return true;
+}
+
+/**
+ * @brief   Converts a spell from a sentence that gives a condition, like "It gains the quickened condition".
+ * @details A sentence is understood only if it's entirely a subject (the target, it, the creature, the ally, you,
+ *          or the enemies in the area), a verb (is, are, becomes, gains), the conditions, and optionally
+ *          "condition" and a duration. Two endings are allowed: the use of a quickened action ("and can use the
+ *          extra action only to Strike or Stride") and "can't reduce their frightened value below 1". Sentences
+ *          without a condition are ignored, and a warning says so.
+ * @param   [in] description - The spell's description, HTML.
+ * @param   [in] system - The spell's "system" object.
+ * @param   [in, out] definition - Gets "effects".
+ * @param   [in, out] warnings - Gets a note that the rest of the description wasn't read.
+ * @return  True if the spell was converted; false if no sentence gives a condition.
+ * @throws  Skip if a sentence mentions a condition but isn't understood.
+ */
+bool ConvertConditionSentences(const std::string& description, const Json& system, Json& definition,
+                               std::vector<std::string>& warnings)
+{
+    const char token = '\x01';  // stands for one condition in the text
+    static const std::regex heightenedParagraph(R"(<p>\s*<strong>Heightened[\s\S]*?</p>)");
+    static const std::regex sentenceEnd(R"([.!?](?:\s|$))");
+    static const std::array endings{
+        std::regex(R"((?:,? and )?(?:you )?can use the (?:extra|additional) action[^\x01]*$)"),
+        std::regex(R"((?:,? and )?(?:they |it )?can't reduce (?:their|its) frightened value below \d+[^\x01]*$)"),
+    };
+    static const std::regex sentence(
+        R"(^(the target|it|the creature|the ally|you|enemies (?:with)?in the area|each enemy (?:with)?in the area) )"
+        R"((?:is|are|becomes|become|gains|gain)(?: the)? \x01(?:(?:,| and|, and) \x01)*(?: conditions?)?)"
+        R"((?: (?:for (?:\d+|one|two|three) (?:rounds?|minutes?|hours?)|until the (?:start|end) of )"
+        R"((?:your|its|the target's) next turn|for the (?:spell's )?duration))?$)");
+
+    // Each condition link becomes a token; the conditions are kept in the same order.
+    std::string html = std::regex_replace(description, heightenedParagraph, " ");
+    std::vector<Json> linked;
+    std::string tokened;
+    auto last = html.cbegin();
+    for (std::sregex_iterator link(html.begin(), html.end(), ConditionLink()), end; link != end; ++link)
+    {
+        tokened.append(last, (*link)[0].first);
+        tokened += std::string(" ") + token + " ";
+        last = (*link)[0].second;
+        linked.push_back(LinkedCondition(*link));
+    }
+    tokened.append(last, html.cend());
+    std::string text = PlainText(tokened);
+
+    Json effects = Json::array();
+    bool ignoredSentences = false;
+    std::size_t nextLinked = 0;
+    std::size_t start = 0;
+    while (start < text.size())
+    {
+        std::smatch stop;
+        std::string remainder = text.substr(start);
+        std::size_t length = std::regex_search(remainder, stop, sentenceEnd) ? stop.position(0) : remainder.size();
+        std::string current = remainder.substr(0, length);
+        start += length + (length < remainder.size() ? stop.length(0) : 0);
+
+        std::vector<Json> conditions;
+        for (char character : current)
+            if (character == token)
+                conditions.push_back(linked.at(nextLinked++));
+        // The allowed endings go first: "can't reduce their frightened value" names a condition it doesn't give.
+        for (const std::regex& ending : endings)
+            current = std::regex_replace(current, ending, "");
+        std::string unlinked;
+        auto wordLast = current.cbegin();
+        for (std::sregex_iterator word(current.begin(), current.end(), ConditionWord()), end; word != end; ++word)
+        {
+            unlinked.append(wordLast, (*word)[0].first);
+            unlinked += token;
+            wordLast = (*word)[0].second;
+            Json condition = {{"condition", (*word)[1].str()}};
+            if ((*word)[2].matched)
+                condition["value"] = std::stoi((*word)[2].str());
+            conditions.push_back(condition);
+        }
+        unlinked.append(wordLast, current.cend());
+        if (conditions.empty())
+        {
+            ignoredSentences = ignoredSentences || !current.empty();
+            continue;
+        }
+        unlinked = std::regex_replace(unlinked, std::regex(R"(^\s+|\s+$)"), "");
+        unlinked = std::regex_replace(unlinked, std::regex(R"(\s+)"), " ");
+        std::smatch parts;
+        if (!std::regex_match(unlinked, parts, sentence) ||
+            static_cast<std::size_t>(std::count(unlinked.begin(), unlinked.end(), token)) != conditions.size())
+            SkipSpell("mentions a condition the converter doesn't understand", current.substr(0, 100));
+
+        std::string subject = parts[1].str();
+        std::string recipient = subject == "you"           ? "actor"
+                                : subject == "the ally"    ? "ally"
+                                : subject.find("enem") != std::string::npos ? "enemy"
+                                                            : Recipient(system);
+        if (recipient.empty() || recipient == "allies")
+            SkipSpell("targets something other than one ally, yourself or your allies",
+                      Find(system, "target") ? TextAt(system.at("target"), "value") : "");
+        for (Json& condition : conditions)
+        {
+            condition["on"] = recipient;
+            effects.push_back(condition);
+        }
+    }
+    if (effects.empty())
+        return false;
+    definition["effects"] = effects;
+    if (ignoredSentences)
+        warnings.push_back("converted from a sentence in the description; the rest of it wasn't read");
+    return true;
+}
+
+/**
+ * @brief   Converts a spell with no attack roll, save, damage or healing, or skips it with a reason that says
+ *          what kind of spell it is.
+ * @details In order: summons, checks or damage written only in the description, linked spell effects, outcomes
+ *          listed without a check, a sentence that gives a condition, and anything else is utility. A spell whose
+ *          linked effects have no rules that apply is read from its sentences.
+ * @param   [in] system - The spell's "system" object.
+ * @param   [in] traits - The spell's traits.
+ * @param   [in] description - The spell's description, HTML.
+ * @param   [in] hasDegreeParagraphs - Whether the description lists outcomes by degree of success.
+ * @param   [in] spellEffects - Foundry's spell effects, by name.
+ * @param   [in, out] definition - Gets the effects.
+ * @param   [in, out] warnings - Gets things to check by hand.
+ * @throws  Skip if the spell can't be converted.
+ */
+void ConvertWithoutCheck(const Json& system, const std::vector<std::string>& traits, const std::string& description,
+                         bool hasDegreeParagraphs, const std::map<std::string, std::string>& spellEffects,
+                         Json& definition, std::vector<std::string>& warnings)
+{
+    static const std::regex effectLink(R"(@UUID\[Compendium\.pf2e\.spell-effects\.Item\.([^\]]+)\])");
+    if (std::find(traits.begin(), traits.end(), "summon") != traits.end())
+        SkipSpell("summons a creature or minion");
+    if (description.find("@Check[") != std::string::npos)
+        SkipSpell("rolls a check written only in the description");
+    if (description.find("@Damage[") != std::string::npos)
+        SkipSpell("deals damage written only in the description (auras, ongoing or triggered damage)");
+
+    std::vector<std::string> effectNames;
+    for (std::sregex_iterator link(description.begin(), description.end(), effectLink), end; link != end; ++link)
+        if (std::find(effectNames.begin(), effectNames.end(), (*link)[1].str()) == effectNames.end())
+            effectNames.push_back((*link)[1].str());
+    int baseRank = definition.contains("rank") ? definition.at("rank").get<int>() : 1;
+    if (!effectNames.empty() &&
+        ConvertSpellEffects(effectNames, spellEffects, system, baseRank, definition, warnings))
+        return;
+    if (hasDegreeParagraphs)
+        SkipSpell("lists outcomes, but Foundry's data has no attack roll or save for them");
+    if (ConvertConditionSentences(description, system, definition, warnings))
+        return;
+    SkipSpell("utility: no combat numbers in Foundry's data");
+}
+
+/**
  * @brief   Converts a spell; skips by throwing.
  * @param   [in] spell - The parsed Foundry file.
+ * @param   [in] spellEffects - Foundry's spell effects, by name.
  * @param   [out] warnings - Gets things to check by hand.
  * @return  Our definition.
  * @throws  Skip if the spell can't be converted faithfully.
  */
-Json Convert(const Json& spell, std::vector<std::string>& warnings)
+Json Convert(const Json& spell, const std::map<std::string, std::string>& spellEffects,
+             std::vector<std::string>& warnings)
 {
     if (TextAt(spell, "type") != "spell")
         SkipSpell("isn't a spell", TextAt(spell, "type"));
@@ -510,7 +1193,10 @@ Json Convert(const Json& spell, std::vector<std::string>& warnings)
     {
         if (!entries.empty())
             SkipSpell("deals damage with no attack roll or save");
-        SkipSpell("no attack roll, save, damage or healing (a buff or utility spell)");
+        ConvertWithoutCheck(system, traits, description, !paragraphs.empty(), spellEffects, definition, warnings);
+        if (const Json* overlays = Find(system, "overlays"); overlays && !overlays->empty())
+            warnings.push_back("has variants (Foundry overlays); only the base version was imported");
+        return definition;
     }
     else
     {
@@ -561,14 +1247,15 @@ Json Convert(const Json& spell, std::vector<std::string>& warnings)
 }
 } // namespace
 
-SpellConversion ConvertFoundrySpell(const std::string& foundryJson)
+SpellConversion ConvertFoundrySpell(const std::string& foundryJson,
+                                    const std::map<std::string, std::string>& spellEffects)
 {
     SpellConversion conversion;
     try
     {
         Json spell = Json::parse(foundryJson);
         conversion.name = TextAt(spell, "name");
-        conversion.definition = Convert(spell, conversion.warnings).dump(4);
+        conversion.definition = Convert(spell, spellEffects, conversion.warnings).dump(4);
     }
     catch (const Skip& skip)
     {
@@ -583,4 +1270,16 @@ SpellConversion ConvertFoundrySpell(const std::string& foundryJson)
         conversion.warnings.clear();
     }
     return conversion;
+}
+
+std::optional<double> EvaluateFoundryFormula(const std::string& formula, int rank)
+{
+    try
+    {
+        return FormulaEvaluator(formula, rank).Evaluate();
+    }
+    catch (const UnsupportedFormula&)
+    {
+        return std::nullopt;
+    }
 }

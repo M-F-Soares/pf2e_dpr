@@ -1,7 +1,7 @@
 {
     "name": "Heroism",
     "reference": "Player Core",
-    "rank": 1,
+    "rank": 3,
     "cost": 2,
     "traits": ["concentrate", "manipulate", "mental"],
     "effects": [{"modifier": "status", "value": 1, "on": "ally",

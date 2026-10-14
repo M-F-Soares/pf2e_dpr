@@ -3,7 +3,8 @@
  * @brief   The importer program (`make import`): converts Foundry VTT's spells into content definitions.
  * @details Usage: `import-foundry <foundry-clone> <data-dir> <output-dir> [source-revision]`. Writes
  *          `<output-dir>/spells.json` and `<output-dir>/import-report.md`, and prints a summary. Spells already
- *          defined by hand in `<data-dir>` are left out, so hand-written definitions win.
+ *          defined by hand in `<data-dir>` are left out, so hand-written definitions win. Buffs need the clone's
+ *          spell effect folder too.
  */
 
 #include "ContentLibrary.h"
@@ -91,6 +92,32 @@ fs::path SpellFolder(const fs::path& clone)
 }
 
 /**
+ * @brief   Foundry's spell effects, which hold the bonuses of buff spells.
+ * @param   [in] clone - The clone.
+ * @return  Each effect's file contents, by the effect's name; empty if the clone has no spell effect folder
+ *          (`packs/pf2e/spell-effects`, or `packs/spell-effects` in older versions).
+ * @throws  std::runtime_error if a file can't be read.
+ */
+std::map<std::string, std::string> SpellEffects(const fs::path& clone)
+{
+    std::map<std::string, std::string> effects;
+    for (const char* candidate : {"packs/pf2e/spell-effects", "packs/spell-effects"})
+    {
+        if (!fs::is_directory(clone / candidate))
+            continue;
+        for (const fs::path& file : JsonFiles(clone / candidate))
+        {
+            std::string text = ReadFile(file);
+            Json effect = Json::parse(text, nullptr, false);
+            if (effect.is_object() && effect.contains("name") && effect.at("name").is_string())
+                effects.emplace(effect.at("name").get<std::string>(), std::move(text));
+        }
+        break;
+    }
+    return effects;
+}
+
+/**
  * @brief   A spell that was left out, and the specifics of why.
  */
 struct SkippedSpell
@@ -105,6 +132,7 @@ struct SkippedSpell
 struct ImportResult
 {
     std::size_t spellCount = 0;                                   /**< Spells read from Foundry. */
+    std::size_t effectCount = 0;                                  /**< Spell effects read from Foundry. */
     std::vector<std::pair<std::string, Json>> imported;           /**< Converted definitions, by name. */
     std::map<std::string, std::vector<std::string>> warnings;     /**< Things to check, by spell name. */
     std::map<std::string, std::vector<SkippedSpell>> skipped;     /**< Spells left out, by reason. */
@@ -168,7 +196,10 @@ std::string Report(const ImportResult& result, const std::string& revision)
            << "Don't edit this folder; change the importer or write the definition by hand in data/, and import "
            << "again.\n\n"
            << "Imported **" << result.imported.size() << "** of " << result.spellCount << " spells ("
-           << result.warnings.size() << " with something to check). Left out: " << skippedCount << ".\n\n";
+           << result.warnings.size() << " with something to check). Left out: " << skippedCount << ".\n\n"
+           << (result.effectCount > 0
+                   ? "Buffs were read from " + std::to_string(result.effectCount) + " spell effects.\n\n"
+                   : std::string("No spell effects were found, so buffs were left out.\n\n"));
 
     report << "## Left out, by reason\n\n| Spells | Reason |\n|---:|---|\n";
     auto reasons = ReasonsByCount(result);
@@ -196,7 +227,7 @@ std::string Report(const ImportResult& result, const std::string& revision)
 
 /**
  * @brief   Imports Foundry's spells.
- * @param   [in] clone - A clone of github.com/foundryvtt/pf2e (only the spell folder is needed).
+ * @param   [in] clone - A clone of github.com/foundryvtt/pf2e (only the spell and spell effect folders are needed).
  * @param   [in] dataFolder - The content folder; its hand-written definitions win over imported ones.
  * @param   [in] outputFolder - Where to write spells.json and the report (usually inside @p dataFolder).
  * @param   [in] revision - Foundry's commit, for the report.
@@ -207,6 +238,7 @@ void Import(const fs::path& clone, const fs::path& dataFolder, const fs::path& o
             const std::string& revision)
 {
     fs::path spellFolder = SpellFolder(clone);
+    std::map<std::string, std::string> spellEffects = SpellEffects(clone);
     ContentLibrary content;
     content.AddDirectory(dataFolder.string(), outputFolder.string());
     std::vector<std::string> names = content.Names();
@@ -214,12 +246,13 @@ void Import(const fs::path& clone, const fs::path& dataFolder, const fs::path& o
 
     HookRegistry hooks = HookRegistry::BuiltIn();
     ImportResult result;
+    result.effectCount = spellEffects.size();
     std::set<std::string> importedNames;
     for (const fs::path& file : JsonFiles(spellFolder))
     {
         ++result.spellCount;
         std::string sourceName = file.lexically_relative(clone).generic_string();
-        SpellConversion conversion = ConvertFoundrySpell(ReadFile(file));
+        SpellConversion conversion = ConvertFoundrySpell(ReadFile(file), spellEffects);
         std::string name = conversion.name.empty() ? sourceName : conversion.name;
         auto skip = [&](const std::string& reason, const std::string& detail) {
             result.skipped[reason].push_back(SkippedSpell{name, detail});
@@ -270,7 +303,10 @@ void Import(const fs::path& clone, const fs::path& dataFolder, const fs::path& o
 
     std::cout << "Imported " << result.imported.size() << " of " << result.spellCount << " spells from Foundry ("
               << revision << ") into " << spellsFile.generic_string() << "; " << result.warnings.size()
-              << " have something to check.\nMost common reasons for leaving a spell out:\n";
+              << " have something to check.\n";
+    if (spellEffects.empty())
+        std::cout << "No spell effects were found in the clone, so buffs were left out.\n";
+    std::cout << "Most common reasons for leaving a spell out:\n";
     auto reasons = ReasonsByCount(result);
     for (std::size_t index = 0; index < reasons.size() && index < 5; ++index)
         std::cout << "  " << reasons[index].second.size() << "  " << reasons[index].first << "\n";
