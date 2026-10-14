@@ -10,6 +10,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include <algorithm>
 #include <fstream>
 #include <map>
 #include <set>
@@ -537,7 +538,9 @@ TEST_CASE("import: what a buff can't express is left out with a warning, or the 
           "uses Foundry's ActiveEffectLike rule, which isn't converted");
     CHECK(SkipReason(spell, effect(R"json([{"key": "FlatModifier", "selector": "athletics", "value": 1}])json")) ==
           "only a bonus to a specific skill (one skill can't be targeted)");
-    CHECK(SkipReason(spell, effect(R"json([{"key": "TempHP", "value": 5}])json")) ==
+    CHECK(SkipReason(spell, effect(R"json([{"key": "Resistance", "type": "fire", "value": 5}])json")) ==
+          "only defensive or movement effects (not modeled)");
+    CHECK(SkipReason(spell, effect(R"json([{"key": "TempHP", "value": "@item.badge.value"}])json")) ==
           "only defensive or movement effects (not modeled)");
     SpellEffects byLevel =
         effect(R"json([{"key": "FlatModifier", "selector": "damage", "value": "@actor.level"}])json");
@@ -678,7 +681,7 @@ TEST_CASE("import: outcomes are read one sentence at a time")
           unreadable);
     CHECK(SkipReason(SaveSpell("<p><strong>Failure</strong> The target is afflicted with a curse at stage 1.</p>")) ==
           "inflicts an affliction, which isn't converted");
-    CHECK(SkipReason(SaveSpell("<p><strong>Failure</strong> The target gains weakness 5 to fire.</p>")) ==
+    CHECK(SkipReason(SaveSpell("<p><strong>Failure</strong> The target gains a weakness to fire damage.</p>")) ==
           "an outcome gives a weakness, which isn't converted");
     // Outcomes that, read, do nothing.
     CHECK(SkipReason(SaveSpell("<p><strong>Success</strong> The target is unaffected.</p>"
@@ -700,8 +703,8 @@ TEST_CASE("import: what outcomes say about damage")
     ActionPtr written = Import(withText("<p><strong>Failure</strong> The creature takes 6d6 fire damage.</p>"))
                             .Use("Test Blast", caster);
     CHECK(written->outcomes[kFail].damage == DamageScale::Normal);
-    CHECK(SkipReason(withText("<p><strong>Failure</strong> The creature takes full damage and 1d6 persistent bleed "
-                              "damage.</p>")) == "an outcome deals damage of its own, which isn't converted");
+    CHECK(SkipReason(withText("<p><strong>Failure</strong> The creature takes 1d6 falling damage.</p>")) ==
+          "an outcome deals damage of its own, which isn't converted");
 
     // When all the damage is persistent, what the outcomes say about it is the damage.
     Json persistent = withText("<p><strong>Success</strong> The target takes half the persistent fire damage.</p>"
@@ -716,7 +719,9 @@ TEST_CASE("import: what outcomes say about damage")
     Json mixed = withText("<p><strong>Success</strong> The creature takes half damage and no persistent damage.</p>");
     mixed["system"]["damage"]["p"] = {{"applyMod", false}, {"category", "persistent"}, {"formula", "1d6"},
                                       {"kinds", {"damage"}}, {"type", "fire"}};
-    CHECK(SkipReason(mixed) == "persistent damage scales differently from the rest, which isn't converted");
+    ActionPtr grip = Import(mixed).Use("Test Blast", caster);
+    CHECK(grip->outcomes[kSuccess].damage == DamageScale::Half);
+    CHECK(grip->outcomes[kSuccess].persistent == DamageScale::None);
     mixed["system"]["description"]["value"] =
         "<p><strong>Failure</strong> The creature takes full damage and persistent damage.</p>";
     CHECK(Import(mixed).Use("Test Blast", caster)->outcomes[kFail].damage == DamageScale::Normal);
@@ -820,4 +825,109 @@ TEST_CASE("import: the triage list")
     SpellTriage project = ReadSpellTriage(text.str());
     CHECK_FALSE(project.contributing.empty());
     CHECK_FALSE(project.leftOut.empty());
+}
+
+TEST_CASE("import: outcomes that add damage of their own, or a weakness")
+{
+    Character caster = MakeCaster(9);
+    auto withText = [](const std::string& paragraphs) {
+        Json spell = FireSpell();
+        spell["system"]["defense"]["save"]["basic"] = false;
+        spell["system"]["heightening"] = nullptr;
+        spell["system"]["description"]["value"] = paragraphs;
+        return spell;
+    };
+
+    // Dice that aren't the spell's are the outcome's own damage, worked out for each rank; twice the spell's
+    // dice are its double damage.
+    ContentLibrary library = Import(withText(
+        "<p><strong>Failure</strong> The creature takes full damage and @Damage[(@item.rank)d8[persistent,void]] "
+        "damage.</p><p><strong>Critical Failure</strong> The creature takes 12d6 fire damage and gains weakness 2 to "
+        "sonic and fire.</p>"));
+    ActionPtr atThree = library.Use("Test Blast", caster);
+    CHECK(atThree->outcomes[kFail].damage == DamageScale::Normal);
+    REQUIRE(atThree->outcomes[kFail].extraDamage.size() == 1);
+    CHECK(atThree->outcomes[kFail].extraDamage[0].count == 3);
+    CHECK(atThree->outcomes[kFail].extraDamage[0].die == 8);
+    CHECK(atThree->outcomes[kFail].extraDamage[0].type == DamageType::Void);
+    CHECK(atThree->outcomes[kFail].extraDamage[0].category == DamageCategory::Persistent);
+    CHECK(library.Use("Test Blast", caster, {.rank = 5})->outcomes[kFail].extraDamage[0].count == 5);
+    CHECK(atThree->outcomes[kCritFail].damage == DamageScale::Double);
+    REQUIRE(atThree->outcomes[kCritFail].weaknesses.size() == 2);
+    CHECK(atThree->outcomes[kCritFail].weaknesses[0].type == DamageType::Sonic);
+    CHECK(atThree->outcomes[kCritFail].weaknesses[1].type == DamageType::Fire);
+    CHECK(atThree->outcomes[kCritFail].weaknesses[1].value == 2);
+
+    // Written without a formula, the outcome's own damage can't follow the Heightened entries; that's flagged.
+    SpellConversion fixed = ConvertFoundrySpell(withText(
+        "<p><strong>Failure</strong> The creature takes full damage and 1d6 persistent bleed damage.</p>"
+        "<p><strong>Heightened (+1)</strong> The bleed damage increases by 1d6.</p>").dump());
+    CHECK(std::find(fixed.warnings.begin(), fixed.warnings.end(),
+                    "damage an outcome deals of its own isn't heightened (Foundry writes it without a formula on "
+                    "the rank)") != fixed.warnings.end());
+
+    // Weakness written the other way around.
+    ActionPtr ashes = Import(withText("<p><strong>Success</strong> The creature takes half damage and has weakness "
+                                      "to fire 3 until the start of its next turn.</p>"))
+                          .Use("Test Blast", caster);
+    REQUIRE(ashes->outcomes[kSuccess].weaknesses.size() == 1);
+    CHECK(ashes->outcomes[kSuccess].weaknesses[0].value == 3);
+}
+
+TEST_CASE("import: temporary HP and fast healing from spell effects")
+{
+    Character caster = MakeCaster(20);
+    Character ally = MakeCaster();
+    ally.name = "Ally";
+    Json spell =
+        NoCheckSpell("Test Vigor", 3, "1 creature", false, "<p>Vigor.</p>" + EffectLink("Spell Effect: Vigor"));
+    SpellEffects effect = Effect("Spell Effect: Vigor", R"json([
+        {"key": "TempHP", "value": "ternary(gte(@item.level,9),18,12)"},
+        {"key": "FastHealing", "value": "@item.level * 2"}])json");
+    CHECK(ConvertFoundrySpell(spell.dump(), effect).warnings ==
+          std::vector<std::string>{"fast healing counts once, as healing (one round)"});
+    ContentLibrary library = Import(spell, effect);
+    ActionPtr atThree = library.Use("Test Vigor", caster, {.ally = &ally});
+    CHECK(atThree->outcomes[kSuccess].tempHp.flat == 12);
+    CHECK(atThree->outcomes[kSuccess].tempHp.to == Who::Ally);
+    CHECK(atThree->outcomes[kSuccess].heal.flat == 6);
+    ActionPtr atNine = library.Use("Test Vigor", caster, {.rank = 9, .ally = &ally});
+    CHECK(atNine->outcomes[kSuccess].tempHp.flat == 18);
+    CHECK(atNine->outcomes[kSuccess].heal.flat == 18);
+}
+
+TEST_CASE("import: persistent damage that only the description gives")
+{
+    Character caster = MakeCaster(9);
+    Json grip = FireSpell();
+    grip["name"] = "Test Grip";
+    Json& system = grip["system"];
+    system["level"]["value"] = 2;
+    system["damage"]["xYz1"]["formula"] = "2d8";
+    system["damage"]["xYz1"]["type"] = "acid";
+    system["heightening"] = {{"type", "interval"}, {"interval", 2}, {"damage", {{"xYz1", "2d8"}}}};
+    system["description"]["value"] =
+        "<p>The target takes 2d8 acid damage plus @Damage[floor(@item.level/2)d6[persistent,acid]] damage.</p>"
+        "<p><strong>Success</strong> The creature takes half damage and no persistent damage.</p>"
+        "<p><strong>Failure</strong> The creature takes full damage and persistent damage.</p>";
+    CHECK(ConvertFoundrySpell(grip.dump()).warnings.empty());
+    ContentLibrary library = Import(grip);
+    ActionPtr atTwo = library.Use("Test Grip", caster);
+    REQUIRE(atTwo->damage.size() == 2);
+    CHECK(atTwo->damage[1].count == 1);
+    CHECK(atTwo->damage[1].die == 6);
+    CHECK(atTwo->damage[1].category == DamageCategory::Persistent);
+    CHECK(atTwo->outcomes[kSuccess].persistent == DamageScale::None);
+    ActionPtr atFour = library.Use("Test Grip", caster, {.rank = 4});
+    CHECK(atFour->damage[0].count == 4);
+    CHECK(atFour->damage[1].count == 2);
+
+    // Two such rolls: which one the outcomes mean isn't known.
+    system["description"]["value"] =
+        "<p>@Damage[1d6[persistent,acid]] or @Damage[1d6[persistent,fire]].</p>"
+        "<p><strong>Failure</strong> The creature takes full damage and persistent damage.</p>";
+    SpellConversion two = ConvertFoundrySpell(grip.dump());
+    CHECK(std::find(two.warnings.begin(), two.warnings.end(),
+                    "the outcomes scale persistent damage that Foundry's damage data doesn't have, and the "
+                    "description doesn't give it once") != two.warnings.end());
 }

@@ -33,14 +33,16 @@ struct SpellConversion
  * @brief   Converts one spell from Foundry's data into a content definition.
  * @details Maps the name, rank (or cantrip), casting time, traits, attack roll or save, damage or healing, and
  *          both kinds of heightening. Degree-of-success paragraphs are read one sentence at a time: no, half, full
- *          or double damage, conditions the engine models, bonuses and penalties to rolls, and "as a failure,
- *          but…". What a sentence adds beyond that is listed in the warnings, unless it changes what the sentence
- *          means (if, when, your choice…), which skips the spell.
+ *          or double damage (persistent damage too), damage of the outcome's own, conditions the engine models,
+ *          weaknesses, bonuses and penalties to rolls, and "as a failure, but…". What a sentence adds beyond that is
+ *          listed in the warnings, unless it changes what the sentence means (if, when, your choice…), which skips
+ *          the spell. Overlays that are versions of the spell (by actions, or by a choice) become variants.
  *
  *          A spell with no attack roll, save, damage or healing is converted from its linked spell effect
- *          (unconditional flat bonuses, and conditions it grants), or from a sentence that gives its target a
- *          condition ("It gains the quickened condition"); otherwise the skip reason says what kind of spell it
- *          is. The definition isn't validated here; load it with ParseDefinitions() to check it.
+ *          (unconditional flat bonuses, conditions it grants, temporary HP and fast healing), or from a sentence
+ *          that gives its target a condition ("It gains the quickened condition"); otherwise the skip reason says
+ *          what kind of spell it is. The definition isn't validated here; load it with ParseDefinitions() to check
+ *          it.
  * @param   [in] foundryJson - The contents of one file from Foundry's spell folder.
  * @param   [in] spellEffects - Foundry's spell effects, by name: the contents of each file in its spell effect
  *          folder. Empty to convert without them.

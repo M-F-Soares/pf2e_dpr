@@ -76,6 +76,21 @@ struct ActiveModifier
 };
 
 /**
+ * @brief   A weakness an effect gave a creature.
+ */
+struct ActiveWeakness
+{
+    int value = 0;   /**< Extra damage taken. */
+    Duration until;  /**< When it ends. */
+
+    /**
+     * @brief   Member-wise ordering, so states can be compared and merged.
+     * @return  The comparison of the first member that differs.
+     */
+    auto operator<=>(const ActiveWeakness&) const = default;
+};
+
+/**
  * @brief   Everything about one creature that can change later rolls.
  */
 struct CreatureState
@@ -84,10 +99,12 @@ struct CreatureState
     std::map<std::string, ActiveModifier> modifiers;  /**< Keyed by source (+ opponent), see ModifierKey(). */
     std::map<std::string, int> counters;              /**< Free-form flags for features/actions. */
     std::map<DamageType, DamageComponent> persistent;  /**< Persistent damage, at most one per type. */
+    std::map<DamageType, ActiveWeakness> weaknesses;   /**< Weaknesses effects gave it, at most one per type. */
     int attacksThisTurn = 0;    /**< For the multiple attack penalty. */
     int actionsUsed = 0;        /**< Actions spent this turn. */
     bool reactionUsed = false;  /**< Whether the reaction has been used since the start of the turn. */
     int hpMissing = 0;          /**< Hit Points below maximum (party members, for effective healing). */
+    int tempHp = 0;             /**< Temporary Hit Points (they don't stack: the highest amount stays). */
 
     /**
      * @brief   Member-wise ordering, so states can be compared and merged.
@@ -200,6 +217,24 @@ struct BattleState
      * @param   [in] component - The damage, compared to the current one of the same type by its average.
      */
     void AddPersistent(int creatureIndex, const DamageComponent& component);
+
+    /**
+     * @brief   Gives a creature a weakness until a duration ends.
+     * @details Weaknesses to the same type don't stack: the higher value stays.
+     * @param   [in] creatureIndex - Creature index.
+     * @param   [in] type - The damage type.
+     * @param   [in] value - Extra damage taken.
+     * @param   [in] until - When it ends.
+     */
+    void AddWeakness(int creatureIndex, DamageType type, int value, Duration until);
+
+    /**
+     * @brief   A creature's defenses, with the weaknesses effects gave it.
+     * @param   [in] creatureIndex - Creature index.
+     * @param   [in] base - Its own immunities, resistances and weaknesses.
+     * @return  @p base, plus a weakness for each one in CreatureState::weaknesses (the highest applies).
+     */
+    DamageDefenses Defenses(int creatureIndex, const DamageDefenses& base) const;
 
     /**
      * @brief   Counts one use of limited-use modifiers, and removes those that have none left.

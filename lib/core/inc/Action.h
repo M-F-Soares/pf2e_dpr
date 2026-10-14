@@ -119,6 +119,17 @@ struct ApplyModifier
 };
 
 /**
+ * @brief   A weakness an outcome gives, to damage of one type, until it ends.
+ */
+struct ApplyWeakness
+{
+    DamageType type;      /**< The damage type. */
+    int value = 0;        /**< Extra damage taken from it. */
+    DurationSpec until;   /**< When it ends. */
+    Who to = Who::Enemy;  /**< Who gets it. */
+};
+
+/**
  * @brief   A counter an outcome sets or clears (see CreatureState::counters).
  */
 struct SetCounter
@@ -186,10 +197,14 @@ struct CoupledEffect
 struct Outcome
 {
     DamageScale damage = DamageScale::None;  /**< How the action's damage is scaled; None deals no damage. */
+    std::optional<DamageScale> persistent;   /**< How its persistent damage is scaled, when not like `damage`. */
+    std::vector<DamageComponent> extraDamage;  /**< Damage of this outcome's own, as stated (not scaled). */
     std::vector<ApplyCondition> conditions;  /**< Conditions applied. */
     std::vector<ApplyModifier> modifiers;    /**< Modifiers applied. */
+    std::vector<ApplyWeakness> weaknesses;   /**< Weaknesses given. */
     std::vector<SetCounter> counters;        /**< Counters set or cleared. */
     HealSpec heal;                           /**< Healing rolled. */
+    HealSpec tempHp;                         /**< Temporary Hit Points rolled. */
     std::vector<Grant> grants;               /**< Actions allies take right away. */
     std::function<void(EffectCtx&)> custom;  /**< Escape hatch for anything else. */
 };
