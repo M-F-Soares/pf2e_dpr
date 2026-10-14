@@ -417,8 +417,8 @@ std::string ParseDisplayName(const Json& value, std::initializer_list<const char
 
 /**
  * @brief   Reads one effect into an outcome of an action.
- * @param   [in] effect - The effect, with exactly one of condition, modifier, counter, heal, hook, damage or
- *          grant.
+ * @param   [in] effect - The effect, with exactly one of condition, modifier, counter, heal, tempHp, hook,
+ *          damage, extraDamage, weakness or grant.
  * @param   [in] hooks - The hooks the effect may call.
  * @param   [in, out] action - Gets the effect in its outcome, grants or chosen modifiers for @p degreeIndex. Its
  *          name and check must already be read.
@@ -432,10 +432,11 @@ void ParseEffect(const Json& effect, const HookRegistry& hooks, ActionDefinition
 {
     Object(effect, "each effect", origin);
     Outcome& outcome = action.outcomes[degreeIndex];
-    const std::array kinds{"condition", "modifier", "counter", "heal", "hook", "damage", "grant"};
+    const std::array kinds{"condition", "modifier", "counter",     "heal",     "tempHp",
+                           "hook",      "damage",   "extraDamage", "weakness", "grant"};
     if (std::count_if(kinds.begin(), kinds.end(), [&](const char* kind) { return effect.contains(kind); }) != 1)
-        origin.Fail("each effect needs exactly one of \"condition\", \"modifier\", \"counter\", \"heal\", \"hook\", "
-                    "\"damage\" or \"grant\"");
+        origin.Fail("each effect needs exactly one of \"condition\", \"modifier\", \"counter\", \"heal\", "
+                    "\"tempHp\", \"hook\", \"damage\", \"extraDamage\", \"weakness\" or \"grant\"");
 
     if (effect.contains("condition"))
     {
@@ -499,6 +500,14 @@ void ParseEffect(const Json& effect, const HookRegistry& hooks, ActionDefinition
         DiceText dice = ParseDice(effect.at("heal"), origin);
         outcome.heal = HealSpec{dice.count, dice.die, dice.flat, ParseTarget(effect, Who::Ally, origin)};
     }
+    else if (effect.contains("tempHp"))
+    {
+        CheckKeys(effect, {"tempHp", "on"}, "a temporary HP effect", origin);
+        if (outcome.tempHp.Any())
+            origin.Fail("an outcome can only give temporary HP once");
+        DiceText dice = ParseDice(effect.at("tempHp"), origin);
+        outcome.tempHp = HealSpec{dice.count, dice.die, dice.flat, ParseTarget(effect, Who::Ally, origin)};
+    }
     else if (effect.contains("hook"))
     {
         CheckKeys(effect, {"hook"}, "a hook effect", origin);
@@ -514,9 +523,32 @@ void ParseEffect(const Json& effect, const HookRegistry& hooks, ActionDefinition
     }
     else if (effect.contains("damage"))
     {
-        CheckKeys(effect, {"damage"}, "a damage effect", origin);
+        CheckKeys(effect, {"damage", "persistent"}, "a damage effect", origin);
         outcome.damage = ParseWord(Text(effect.at("damage"), "a damage scale", origin), kDamageScales,
                                    "damage scale", origin);
+        if (effect.contains("persistent"))
+            outcome.persistent = ParseWord(Text(effect.at("persistent"), "a damage scale", origin), kDamageScales,
+                                           "damage scale", origin);
+    }
+    else if (effect.contains("extraDamage"))
+    {
+        CheckKeys(effect, {"extraDamage"}, "an extra damage effect", origin);
+        for (const Json& entry : List(effect.at("extraDamage"), "\"extraDamage\"", origin))
+            outcome.extraDamage.push_back(ParseDamage(entry, nullptr, origin));
+    }
+    else if (effect.contains("weakness"))
+    {
+        CheckKeys(effect, {"weakness", "type", "on", "until"}, "a weakness effect", origin);
+        if (!effect.contains("type"))
+            origin.Fail("a weakness effect needs a \"type\"");
+        ApplyWeakness weakness{ParseName(Text(effect.at("type"), "a damage type", origin), kDamageTypes,
+                                         "damage type", origin)};
+        weakness.value = IntAt(effect, "weakness", 0, origin);
+        if (weakness.value < 1)
+            origin.Fail("a weakness must be at least 1");
+        weakness.until = ParseUntil(effect, origin);
+        weakness.to = ParseTarget(effect, Who::Enemy, origin);
+        outcome.weaknesses.push_back(weakness);
     }
     else
     {

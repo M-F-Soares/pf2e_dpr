@@ -50,6 +50,7 @@ struct Ledger
     std::map<LedgerKey, double> damage;         /**< Expected damage dealt to the enemy. */
     std::map<LedgerKey, double> healRaw;        /**< Expected healing rolled, summed over targets. */
     std::map<LedgerKey, double> healEffective;  /**< Capped by the target's missing HP. */
+    std::map<LedgerKey, double> tempHp;         /**< Temporary HP gained (above what the target already had). */
     std::map<LedgerKey, double> skipped;        /**< Probability the action couldn't be taken. */
 
     /**
@@ -69,6 +70,12 @@ struct Ledger
      * @return  The sum of every effective healing line.
      */
     double TotalHealEffective() const;
+
+    /**
+     * @brief   Expected temporary Hit Points gained in the whole round.
+     * @return  The sum of every temporary HP line.
+     */
+    double TotalTempHp() const;
 
     /**
      * @brief   Expected damage credited to one character.
@@ -239,6 +246,21 @@ private:
      */
     Branches Heal(const HealSpec& healSpec, BattleState state, double probability, int actorIndex, int allyIndex,
                   const LedgerKey& key, Ledger& ledger) const;
+
+    /**
+     * @brief   Grants temporary Hit Points.
+     * @details One roll for every target. Temporary HP don't stack, so a target only gains what it rolls above the
+     *          temporary HP it has; the branch splits on the amount.
+     * @param   [in] tempHp - The temporary HP.
+     * @param   [in] branches - The branches to grant them in.
+     * @param   [in] actorIndex - Index of the actor.
+     * @param   [in] allyIndex - Index of the action's ally target, or -1.
+     * @param   [in] key - Ledger line for them.
+     * @param   [in, out] ledger - Receives the temporary HP gained.
+     * @return  One branch per amount (merged), or @p branches unchanged if @p tempHp grants nothing.
+     */
+    Branches GrantTempHp(const HealSpec& tempHp, Branches branches, int actorIndex, int allyIndex,
+                         const LedgerKey& key, Ledger& ledger) const;
 
     /**
      * @brief   Whether the enemy is immune to one of the action's traits.

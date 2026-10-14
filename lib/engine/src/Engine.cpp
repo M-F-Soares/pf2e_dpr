@@ -79,6 +79,7 @@ int MultipleAttackPenalty(int attacksMade, bool agile)
 double Ledger::TotalDamage() const { return Sum(damage); }
 double Ledger::TotalHealRaw() const { return Sum(healRaw); }
 double Ledger::TotalHealEffective() const { return Sum(healEffective); }
+double Ledger::TotalTempHp() const { return Sum(tempHp); }
 
 double Ledger::DamageBy(const std::string& actorName) const
 {
@@ -172,6 +173,8 @@ Branches Engine::Execute(const Action& action, const BattleState& state, double 
     if (noEffect > 1e-12)
         result.emplace_back(after, probability * noEffect);
 
+    // The action's damage meets the weaknesses the enemy has before it, not the ones it gives.
+    DamageDefenses enemyDefenses = before.Defenses(kEnemyIndex, m_encounter.enemy.defenses);
     std::set<std::string> attackTraits = action.traits;
     if (action.weapon)
         attackTraits.insert(action.weapon->traits.begin(), action.weapon->traits.end());
@@ -197,13 +200,13 @@ Branches Engine::Execute(const Action& action, const BattleState& state, double 
         for (OutcomeBranch& branch : parts)
         {
             if (!branch.rolls.empty())
-                ledger.damage[key] +=
-                    branch.probability * ExpectedDamage(branch.rolls, m_encounter.enemy.defenses, attackTraits);
+                ledger.damage[key] += branch.probability * ExpectedDamage(branch.rolls, enemyDefenses, attackTraits);
             for (const DamageRoll& damageRoll : branch.rolls)
                 AddPersistent(damageRoll, branch.state);
 
             Branches outs = Heal(outcome.heal, std::move(branch.state), branch.probability, actorIndex, allyIndex, key,
                                  ledger);
+            outs = GrantTempHp(outcome.tempHp, std::move(outs), actorIndex, allyIndex, key, ledger);
             for (const Grant& grant : outcome.grants)
             {
                 int granteeIndex = m_encounter.IndexOf(grant.allyName);
@@ -231,8 +234,26 @@ void Engine::ApplyOutcome(const Action& action, Degree degree, OutcomeBranch& br
     BattleState& state = branch.state;
     EffectCtx ctx{m_encounter, action, degree, before, state, actorIndex, nullptr};
 
-    if (outcome.damage != DamageScale::None)
+    DamageScale persistentScale = outcome.persistent.value_or(outcome.damage);
+    if (persistentScale == outcome.damage && outcome.damage != DamageScale::None)
         branch.rolls.push_back(DamageRoll{DamageComponents(action, outcome.damage, ctx), outcome.damage});
+    else if (persistentScale != outcome.damage)
+    {
+        // The persistent damage is scaled on its own (Acid Grip: half damage and no persistent damage).
+        auto persistent = [](const DamageComponent& component) {
+            return component.category == DamageCategory::Persistent;
+        };
+        std::vector<DamageComponent> immediate = DamageComponents(action, outcome.damage, ctx);
+        std::erase_if(immediate, persistent);
+        std::vector<DamageComponent> lasting = DamageComponents(action, persistentScale, ctx);
+        std::erase_if(lasting, [&](const DamageComponent& component) { return !persistent(component); });
+        if (outcome.damage != DamageScale::None)
+            branch.rolls.push_back(DamageRoll{immediate, outcome.damage});
+        if (persistentScale != DamageScale::None)
+            branch.rolls.push_back(DamageRoll{lasting, persistentScale});
+    }
+    if (!outcome.extraDamage.empty())
+        branch.rolls.push_back(DamageRoll{outcome.extraDamage, DamageScale::Normal});
 
     for (const ApplyCondition& condition : outcome.conditions)
         for (int targetIndex : Resolve(condition.to, actorIndex, allyIndex))
@@ -260,6 +281,11 @@ void Engine::ApplyOutcome(const Action& action, Degree degree, OutcomeBranch& br
             state.AddModifier(targetIndex,
                               ActiveModifier{mod, Resolve(modifier.until, actorIndex, allyIndex), modifier.uses});
     }
+
+    for (const ApplyWeakness& weakness : outcome.weaknesses)
+        for (int targetIndex : Resolve(weakness.to, actorIndex, allyIndex))
+            state.AddWeakness(targetIndex, weakness.type, weakness.value,
+                              Resolve(weakness.until, actorIndex, allyIndex));
 
     for (const SetCounter& counter : outcome.counters)
         for (int targetIndex : Resolve(counter.on, actorIndex, allyIndex))
@@ -382,6 +408,31 @@ Branches Engine::Heal(const HealSpec& healSpec, BattleState state, double probab
         ledger.healEffective[key] += probability * amountProbability * effective;
         outs.emplace_back(std::move(healed), probability * amountProbability);
     }
+    return Merge(std::move(outs));
+}
+
+Branches Engine::GrantTempHp(const HealSpec& tempHp, Branches branches, int actorIndex, int allyIndex,
+                             const LedgerKey& key, Ledger& ledger) const
+{
+    if (!tempHp.Any())
+        return branches;
+    std::vector<int> targetIndices = Resolve(tempHp.to, actorIndex, allyIndex);
+    Dist amounts = tempHp.Distribution();
+    Branches outs;
+    for (auto& [state, probability] : branches)
+        for (auto [amount, amountProbability] : amounts.Values())
+        {
+            BattleState granted = state;
+            int gained = 0;
+            for (int targetIndex : targetIndices)
+            {
+                // Temporary Hit Points don't stack: the highest amount stays.
+                gained += std::max(0, amount - granted[targetIndex].tempHp);
+                granted[targetIndex].tempHp = std::max(granted[targetIndex].tempHp, amount);
+            }
+            ledger.tempHp[key] += probability * amountProbability * gained;
+            outs.emplace_back(std::move(granted), probability * amountProbability);
+        }
     return Merge(std::move(outs));
 }
 
@@ -550,7 +601,8 @@ void Engine::EnemyEndOfTurn(Branches& branches, Ledger& ledger) const
     {
         for (const auto& [type, component] : state[kEnemyIndex].persistent)
         {
-            double damage = ExpectedDamage({component}, DamageScale::Normal, m_encounter.enemy.defenses);
+            double damage = ExpectedDamage({component}, DamageScale::Normal,
+                                           state.Defenses(kEnemyIndex, m_encounter.enemy.defenses));
             ledger.damage[LedgerKey{"(persistent)", ToString(type)}] += probability * damage * ticks;
         }
         state.EndTurn(kEnemyIndex);

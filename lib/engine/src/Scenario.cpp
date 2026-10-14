@@ -128,6 +128,13 @@ void PrintReport(const RunResult& result, std::ostream& os)
                << Fixed(effective == result.ledger.healEffective.end() ? 0.0 : effective->second) << ")\n";
         }
     }
+    if (!result.ledger.tempHp.empty())
+    {
+        os << "Expected temporary HP: " << Fixed(result.ledger.TotalTempHp()) << "\n";
+        for (const auto& [key, value] : result.ledger.tempHp)
+            os << "  " << std::left << std::setw(14) << key.actorName << std::setw(34) << key.actionName << std::right
+               << std::setw(8) << Fixed(value) << "\n";
+    }
 
     for (const auto& [key, probability] : result.ledger.skipped)
         if (probability > 1e-9)
@@ -179,6 +186,8 @@ void Compare(const std::vector<Scenario>& scenarios, std::ostream& os)
             os << "  (" << Fixed(damage - best) << ")";
         if (!result->ledger.healRaw.empty())
             os << "  heal " << Fixed(result->ledger.TotalHealEffective());
+        if (!result->ledger.tempHp.empty())
+            os << "  temp HP " << Fixed(result->ledger.TotalTempHp());
         os << "\n";
     }
 }

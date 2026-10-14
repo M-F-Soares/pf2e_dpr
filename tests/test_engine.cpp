@@ -10,6 +10,10 @@
 #include "Scenario.h"
 
 #include <functional>
+#include <memory>
+#include <sstream>
+#include <string>
+#include <vector>
 
 namespace
 {
@@ -697,4 +701,103 @@ TEST_CASE("overwhelming spellstrike: resistance to all damage counts as resistan
     // The spell's fire faces 15 - 12 = 3: 27 on a hit, 57 on a crit. The sword's slashing still faces 15:
     // 1d8+4 never gets through on a hit; on a crit E[max(0, 2(1d8+4) - 15)] = 25/8.
     CHECK(scenario.Run().ledger.TotalDamage() == doctest::Approx(StrikeEV(23, 30, 27.0, 57.0 + 25.0 / 8.0)));
+}
+
+namespace
+{
+/**
+ * @brief   An action with no check (it always succeeds) whose outcome a test fills in.
+ * @param   [in] name - The action's name.
+ * @param   [in] damage - Its damage.
+ * @return  The action.
+ */
+std::shared_ptr<Action> Automatic(const std::string& name, std::vector<DamageComponent> damage = {})
+{
+    auto action = std::make_shared<Action>();
+    action->name = name;
+    action->damage = std::move(damage);
+    return action;
+}
+
+/**
+ * @brief   Runs one character's turn against a dummy.
+ * @param   [in] actions - The actions, in order.
+ * @param   [in] dummy - The enemy.
+ * @return  The result.
+ */
+RunResult RunTurn(const std::vector<ActionPtr>& actions, const Monster& dummy = MakeDummy())
+{
+    Scenario scenario("turn");
+    scenario.Against(dummy).AddTurn(MakeFighter("Caster"), std::vector<Step>(actions.begin(), actions.end()));
+    return scenario.Run();
+}
+} // namespace
+
+TEST_CASE("engine: an outcome's persistent damage can scale apart from the rest")
+{
+    auto acid = Automatic("Acid", {Damage(0, 0, 10, DamageType::Acid), Persistent(0, 0, 4, DamageType::Acid)});
+    Outcome& success = acid->outcomes[kSuccess];
+    success.damage = DamageScale::Half;
+    CHECK(RunTurn({acid}).ledger.TotalDamage() == doctest::Approx(5.0 + 2.0));  // both halved, as before
+    success.persistent = DamageScale::None;
+    CHECK(RunTurn({acid}).ledger.TotalDamage() == doctest::Approx(5.0));  // half damage, no persistent damage
+    success.damage = DamageScale::None;
+    success.persistent = DamageScale::Double;
+    CHECK(RunTurn({acid}).ledger.TotalDamage() == doctest::Approx(8.0));  // only the persistent damage, doubled
+}
+
+TEST_CASE("engine: an outcome's own damage is added as stated, and meets resistances with the rest")
+{
+    auto bolt = Automatic("Bolt", {Damage(0, 0, 10, DamageType::Fire)});
+    bolt->outcomes[kSuccess].damage = DamageScale::Half;
+    bolt->outcomes[kSuccess].extraDamage = {Damage(0, 0, 4, DamageType::Fire), Persistent(0, 0, 3, DamageType::Bleed)};
+    Monster dummy = MakeDummy();
+    dummy.defenses.resistances = {{DamageType::Fire, 2}};
+    // Fire: 5 (half of 10) + 4 (not halved), less resistance 2 once; then 3 persistent bleed.
+    CHECK(RunTurn({bolt}, dummy).ledger.TotalDamage() == doctest::Approx(7.0 + 3.0));
+
+    // With no damage of the action's, the outcome's own still counts.
+    bolt->outcomes[kSuccess].damage = DamageScale::None;
+    CHECK(RunTurn({bolt}).ledger.TotalDamage() == doctest::Approx(4.0 + 3.0));
+}
+
+TEST_CASE("engine: a weakness an outcome gives applies to later damage, not to its own")
+{
+    auto expose = Automatic("Expose", {Damage(0, 0, 10, DamageType::Fire)});
+    expose->outcomes[kSuccess].damage = DamageScale::Normal;
+    expose->outcomes[kSuccess].weaknesses = {ApplyWeakness{DamageType::Fire, 5}};
+    auto burn = Automatic("Burn", {Damage(0, 0, 10, DamageType::Fire)});
+    burn->outcomes[kSuccess].damage = DamageScale::Normal;
+    auto chill = Automatic("Chill", {Damage(0, 0, 10, DamageType::Cold)});
+    chill->outcomes[kSuccess].damage = DamageScale::Normal;
+
+    RunResult result = RunTurn({expose, burn, chill});
+    CHECK(result.ledger.damage.at({"Caster", "Expose"}) == doctest::Approx(10.0));
+    CHECK(result.ledger.damage.at({"Caster", "Burn"}) == doctest::Approx(15.0));
+    CHECK(result.ledger.damage.at({"Caster", "Chill"}) == doctest::Approx(10.0));
+
+    // Only the highest weakness to a type applies.
+    Monster weak = MakeDummy();
+    weak.defenses.weaknesses = {{DamageType::Fire, 3}};
+    CHECK(RunTurn({expose, burn}, weak).ledger.damage.at({"Caster", "Burn"}) == doctest::Approx(15.0));
+}
+
+TEST_CASE("engine: temporary HP count what the target gains, and don't stack")
+{
+    auto ward = Automatic("Ward");
+    ward->outcomes[kSuccess].tempHp = HealSpec{0, 0, 6, Who::Actor};
+    auto bigger = Automatic("Bigger Ward");
+    bigger->outcomes[kSuccess].tempHp = HealSpec{0, 0, 10, Who::Actor};
+    RunResult result = RunTurn({ward, bigger, ward});
+    CHECK(result.ledger.tempHp.at({"Caster", "Ward"}) == doctest::Approx(6.0));
+    CHECK(result.ledger.tempHp.at({"Caster", "Bigger Ward"}) == doctest::Approx(4.0));
+    CHECK(result.ledger.TotalTempHp() == doctest::Approx(10.0));
+
+    auto rolled = Automatic("Rolled Ward");
+    rolled->outcomes[kSuccess].tempHp = HealSpec{1, 4, 0, Who::Actor};
+    CHECK(RunTurn({rolled}).ledger.TotalTempHp() == doctest::Approx(2.5));
+
+    std::ostringstream report;
+    PrintReport(result, report);
+    CHECK(report.str().find("Expected temporary HP: 10.00") != std::string::npos);
 }

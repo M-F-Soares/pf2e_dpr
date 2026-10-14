@@ -487,6 +487,16 @@ Json ReadRollModifiers(std::string& sentence)
 }
 
 /**
+ * @brief   Damage an outcome deals of its own, as Foundry writes it.
+ */
+struct ExtraDamage
+{
+    std::string formula;      /**< Dice ("1d4", "(@item.rank)d8") or an amount ("5*@item.level"). */
+    std::string type;         /**< Damage type. */
+    bool persistent = false;  /**< Persistent damage. */
+};
+
+/**
  * @brief   What one degree-of-success paragraph does.
  */
 struct DegreeEffects
@@ -494,6 +504,7 @@ struct DegreeEffects
     std::optional<std::string> damage;      /**< "none", "half", "normal" or "double", if the paragraph says. */
     std::optional<std::string> persistent;  /**< The same for the persistent damage, if the paragraph says it apart. */
     Json effects = Json::array();           /**< Condition and modifier effects, in the order they're written. */
+    std::vector<ExtraDamage> extraDamage;   /**< Damage of the outcome's own, beyond the spell's. */
     std::string sameAs;                     /**< "As a failure, but…": the outcome this one adds to; else empty. */
     std::vector<std::string> warnings;      /**< What was dropped or read only in part, for someone to check. */
 };
@@ -516,8 +527,9 @@ struct DegreeEffects
  */
 DegreeEffects ReadDegree(const std::string& html, const std::string& heading, const std::vector<DamageEntry>& entries)
 {
-    static const std::string damageType = "(?:(?:bludgeoning|piercing|slashing|fire|cold|electricity|acid|sonic|"
-                                          "vitality|void|force|spirit|mental|poison|bleed|untyped) )?";
+    static const std::string damageTypes = "bludgeoning|piercing|slashing|fire|cold|electricity|acid|sonic|vitality|"
+                                           "void|force|spirit|mental|poison|bleed|untyped";
+    static const std::string damageType = "(?:(?:" + damageTypes + ") )?";
     static const std::regex diceDuration(R"(\bfor (?:\[\[/r [^\]]*\]\](?:\{[^}]*\})?|\d+d\d+ (?:rounds?|minutes?)))");
     static const std::regex affliction(R"(\bafflicted\b|\bstage \d)");
     static const std::array mentions{
@@ -536,11 +548,20 @@ DegreeEffects ReadDegree(const std::string& html, const std::string& heading, co
     static const std::regex sameAs(
         R"(\b(?:(?:the )?effects? (?:is|are) )?(?:the same )?as (?:a |an |the |on a |with a |for a )?)"
         R"((critical success|success|critical failure|failure)(?: effects?| results?| outcomes?)?\b)");
-    static const std::regex inlineDamage(
-        R"(\b(?:takes |is dealt |deals |take )?@damage\[([^\[\]]+)\[([a-z,]+)\]\](?:\{[^}]*\})?(?: damage)?)");
-    static const std::regex writtenDamage(R"(\b(?:takes |is dealt |deals |take )?(\d+d\d+(?:[+-]\d+)?|\d+) )"
-                                          R"((persistent )?([a-z]+) damage\b)");
+    // No \b before "@": there's no word boundary between a space and it.
+    static const std::regex inlineDamage(R"((?:\b(?:takes |is dealt |deals |take ))?(?:\ban additional )?)"
+                                         R"(@damage\[([^\[\]]+)\[([a-z,]+)\](?:\|[^\]]*)?\])"
+                                         R"((?:\{[^}]*\})?(?: damage)?)");
+    static const std::regex writtenDamage(R"(\b(?:takes |is dealt |deals |take )?(?:an additional )?)"
+                                          R"((\d+d\d+(?:[+-]\d+)?|\d+) (persistent )?()" + damageTypes +
+                                          R"() damage\b)");
     static const std::regex otherDice(R"(@damage\[|\b\d+d\d+\b)");
+    static const std::regex weaknessValueFirst(R"(\b(?:gains? |has |have |gets )?(?:a )?weakness (\d+) to ((?:)" +
+                                               damageTypes + R"()(?:(?:,| and|, and) (?:)" + damageTypes +
+                                               R"())*)(?: damage)?)");
+    static const std::regex weaknessTypeFirst(R"(\b(?:gains? |has |have |gets )?(?:a )?weakness to ()" + damageTypes +
+                                              R"()(?: damage)? (\d+))");
+    static const std::regex typeWord("\\b(?:" + damageTypes + ")\\b");
     static const std::regex persistentTrait(R"(,persistent,|^,|,$)");
     static const std::regex bothDamage(R"(\b(?:takes |is dealt |deals |you deal |take )?(no|half|full|double) )"
                                        R"((?:the )?initial and persistent damage\b)");
@@ -595,7 +616,7 @@ DegreeEffects ReadDegree(const std::string& html, const std::string& heading, co
     static const std::regex guard(
         R"(\b(?:if|unless|when|whenever|while|after|first|each time|every time|either|choice|chosen|choose|)"
         R"(choosing|depending|random|randomly|instead of|against|except|only|second|third|next|value|reduce|)"
-        R"(reduces|reduced|remove|removes|you|your|ally|allies|other|another|not|no longer|can't|cannot)\b)");
+        R"(reduces|reduced|remove|removes|you|your|ally|allies|other|another|not|no longer|can't|cannot|per)\b)");
     static const std::array degreeWords{std::pair{"critical success", "critSuccess"},
                                         std::pair{"success", "success"}, std::pair{"failure", "failure"},
                                         std::pair{"critical failure", "critFailure"}};
@@ -632,8 +653,6 @@ DegreeEffects ReadDegree(const std::string& html, const std::string& heading, co
             SkipSpell("an outcome has an area of its own, which isn't converted", detail);
         if (std::regex_search(rest, affliction))
             SkipSpell("inflicts an affliction, which isn't converted", detail);
-        if (rest.find("weakness") != std::string::npos)
-            SkipSpell("an outcome gives a weakness, which isn't converted", detail);
         if (std::smatch unmodeled; std::regex_search(rest, unmodeled, UnmodeledConditionWord()))
             SkipSpell("unknown condition \"" + unmodeled[1].str() + "\"");
         for (const std::regex& mention : mentions)
@@ -647,15 +666,30 @@ DegreeEffects ReadDegree(const std::string& html, const std::string& heading, co
             read = true;
         }
 
-        // The spell's own dice, written out: "takes 4d6 bludgeoning damage" is its full damage.
+        // Dice written out: the spell's own ("takes 4d6 bludgeoning damage") are its full damage, and twice them its
+        // double damage; anything else is damage of the outcome's own.
+        auto writtenOut = [&](const std::string& formula, const std::string& type, bool persistent) {
+            static const std::regex dice(R"((\d+)d(\d+))");
+            std::smatch written;
+            bool plain = std::regex_match(formula, written, dice);
+            for (const DamageEntry& entry : entries)
+            {
+                std::smatch spell;
+                if (entry.healing || entry.type != type || (entry.category == "persistent") != persistent)
+                    continue;
+                if (entry.formula == formula)
+                    return setDamage(persistent ? effects.persistent : effects.damage, "normal");
+                if (plain && std::regex_match(entry.formula, spell, dice) && spell[2] == written[2] &&
+                    std::stoi(written[1].str()) == 2 * std::stoi(spell[1].str()))
+                    return setDamage(persistent ? effects.persistent : effects.damage, "double");
+            }
+            effects.extraDamage.push_back(ExtraDamage{formula, type, persistent});
+        };
         auto ownDamage = [&](const std::string& formula, const std::string& type, bool persistent) {
-            bool own = std::any_of(entries.begin(), entries.end(), [&](const DamageEntry& entry) {
-                return !entry.healing && entry.formula == formula && entry.type == type &&
-                       (entry.category == "persistent") == persistent;
-            });
-            if (!own)
+            static const std::regex oneType("(?:" + damageTypes + ")");
+            if (!std::regex_match(type, oneType))
                 SkipSpell("an outcome deals damage of its own, which isn't converted", detail);
-            setDamage(persistent ? effects.persistent : effects.damage, "normal");
+            writtenOut(formula, type, persistent || type == "bleed");  // bleed damage is always persistent
             read = true;
         };
         for (std::smatch roll; std::regex_search(rest, roll, inlineDamage);)
@@ -673,6 +707,23 @@ DegreeEffects ReadDegree(const std::string& html, const std::string& heading, co
         }
         if (std::regex_search(rest, otherDice))
             SkipSpell("an outcome deals damage of its own, which isn't converted", detail);
+
+        for (std::smatch phrase; std::regex_search(rest, phrase, weaknessValueFirst);)
+        {
+            std::string types = phrase[2].str();
+            for (std::sregex_iterator type(types.begin(), types.end(), typeWord), end; type != end; ++type)
+                effects.effects.push_back({{"weakness", std::stoi(phrase[1].str())}, {"type", (*type)[0].str()}});
+            rest = phrase.prefix().str() + " " + phrase.suffix().str();
+            read = true;
+        }
+        for (std::smatch phrase; std::regex_search(rest, phrase, weaknessTypeFirst);)
+        {
+            effects.effects.push_back({{"weakness", std::stoi(phrase[2].str())}, {"type", phrase[1].str()}});
+            rest = phrase.prefix().str() + " " + phrase.suffix().str();
+            read = true;
+        }
+        if (rest.find("weakness") != std::string::npos)
+            SkipSpell("an outcome gives a weakness, which isn't converted", detail);
 
         for (std::smatch phrase; std::regex_search(rest, phrase, bothDamage);)
         {
@@ -776,21 +827,62 @@ std::map<std::string, std::string> DegreeParagraphs(const std::string& html, std
 }
 
 /**
+ * @brief   Our dice for damage Foundry writes as a formula on the rank: "(@item.rank)d8" is 3d8 at rank 3.
+ * @param   [in] formula - Dice ("2d6"), dice whose count is a formula ("(floor(@item.rank/2))d8"), or an amount
+ *          ("5*@item.level", "1").
+ * @param   [in] rank - The rank the spell is cast at.
+ * @return  The dice, or nothing if the formula can't be worked out or comes to less than 1.
+ */
+std::optional<std::string> DiceAt(const std::string& formula, int rank)
+{
+    static const std::regex counted(R"(\s*(.+)d(\d+)\s*)");
+    auto whole = [](std::optional<double> value) { return value && *value >= 1 && std::floor(*value) == *value; };
+    if (PlainDice(formula))
+        return formula;
+    if (std::smatch dice; std::regex_match(formula, dice, counted))
+    {
+        std::optional<double> count = EvaluateFoundryFormula(dice[1].str(), rank);
+        if (!whole(count))
+            return std::nullopt;
+        return std::to_string(static_cast<int>(*count)) + "d" + dice[2].str();
+    }
+    std::optional<double> amount = EvaluateFoundryFormula(formula, rank);
+    if (!whole(amount))
+        return std::nullopt;
+    return std::to_string(static_cast<int>(*amount));
+}
+
+/**
+ * @brief   What the degree-of-success paragraphs convert to.
+ */
+struct OutcomeConversion
+{
+    Json outcomes = Json::object();    /**< Our outcomes at the spell's rank, by key; only those that do something. */
+    Json heightened = Json::object();  /**< A "Heightened (Nth)" entry for each rank where the outcomes change. */
+    bool damageStated = false;         /**< An outcome says how much of the spell's damage it deals. */
+    bool persistentStated = false;     /**< An outcome says how much of the spell's persistent damage it deals. */
+};
+
+/**
  * @brief   Converts the degree-of-success paragraphs into outcomes.
- * @details "As a failure, but…" starts from that outcome's effects, and its damage unless it says its own. Each
- *          modifier after the first in an outcome gets its own source, since the same source never stacks.
+ * @details "As a failure, but…" starts from that outcome's effects and own damage, and its damage unless it says
+ *          its own. Each modifier after the first in an outcome gets its own source, since the same source never
+ *          stacks. An outcome's own damage written as a formula on the rank is worked out for each rank, and each
+ *          rank where it changes gets a "Heightened (Nth)" entry with the outcomes.
  * @param   [in] paragraphs - The paragraphs' HTML, by outcome key.
  * @param   [in] entries - The spell's damage rolls.
  * @param   [in] spellName - The spell's name, which the modifiers' sources start with.
- * @param   [out] damageStated - Whether an outcome says how much damage it deals.
+ * @param   [in] baseRank - The spell's rank (1 for a cantrip).
  * @param   [in, out] warnings - Gets what was dropped or read only in part.
- * @return  Our outcomes, by key; only those that do something.
- * @throws  Skip as ReadDegree() does, if an outcome builds on one that isn't listed, or if an outcome's persistent
- *          damage scales differently from the rest of its damage.
+ * @return  The outcomes, and what they say about the spell's damage.
+ * @throws  Skip as ReadDegree() does, if an outcome builds on one that isn't listed, or if an outcome's own damage
+ *          can't be worked out.
  */
-Json ConvertOutcomes(const std::map<std::string, std::string>& paragraphs, const std::vector<DamageEntry>& entries,
-                     const std::string& spellName, bool& damageStated, std::vector<std::string>& warnings)
+OutcomeConversion ConvertOutcomes(const std::map<std::string, std::string>& paragraphs,
+                                  const std::vector<DamageEntry>& entries, const std::string& spellName, int baseRank,
+                                  std::vector<std::string>& warnings)
 {
+    OutcomeConversion conversion;
     std::map<std::string, DegreeEffects> degrees;
     for (const auto& [heading, key] : kDegreeHeadings)
         if (auto paragraph = paragraphs.find(key); paragraph != paragraphs.end())
@@ -815,6 +907,8 @@ Json ConvertOutcomes(const std::map<std::string, std::string>& paragraphs, const
             Json combined = base->second.effects;
             combined.insert(combined.end(), effects.effects.begin(), effects.effects.end());
             effects.effects = combined;
+            effects.extraDamage.insert(effects.extraDamage.begin(), base->second.extraDamage.begin(),
+                                       base->second.extraDamage.end());
             if (!effects.damage)
             {
                 effects.damage = base->second.damage;
@@ -823,36 +917,147 @@ Json ConvertOutcomes(const std::map<std::string, std::string>& paragraphs, const
             effects.sameAs.clear();
         }
 
-    Json outcomes = Json::object();
-    for (const auto& [heading, key] : kDegreeHeadings)
+    for (const auto& [key, effects] : degrees)
     {
-        auto degree = degrees.find(key);
-        if (degree == degrees.end())
-            continue;
-        const DegreeEffects& effects = degree->second;
         if (!effects.sameAs.empty())
             SkipSpell("outcome text isn't understood", "the outcomes build on each other in a circle");
-        if (effects.persistent && effects.persistent != effects.damage)
-            SkipSpell("persistent damage scales differently from the rest, which isn't converted",
-                      std::string(heading) + ": " + effects.damage.value_or("no amount") + " damage, " +
-                          *effects.persistent + " persistent damage");
-        Json list = Json::array();
-        int modifierCount = 0;
-        for (Json effect : effects.effects)
-        {
-            if (effect.contains("modifier") && ++modifierCount > 1)
-                effect["source"] = spellName + " (" + std::to_string(modifierCount) + ")";
-            list.push_back(effect);
-        }
-        if (effects.damage)
-        {
-            list.push_back({{"damage", *effects.damage}});
-            damageStated = true;
-        }
-        if (!list.empty())
-            outcomes[key] = list;
+        if (effects.persistent && !effects.damage)
+            SkipSpell("outcome text isn't understood", "an outcome says how much persistent damage, but not how "
+                                                       "much of the rest");
+        conversion.damageStated = conversion.damageStated || effects.damage;
+        conversion.persistentStated = conversion.persistentStated || effects.persistent;
     }
-    return outcomes;
+
+    auto outcomesAt = [&](int rank) {
+        Json outcomes = Json::object();
+        for (const auto& [heading, key] : kDegreeHeadings)
+        {
+            auto degree = degrees.find(key);
+            if (degree == degrees.end())
+                continue;
+            const DegreeEffects& effects = degree->second;
+            Json list = Json::array();
+            int modifierCount = 0;
+            for (Json effect : effects.effects)
+            {
+                if (effect.contains("modifier") && ++modifierCount > 1)
+                    effect["source"] = spellName + " (" + std::to_string(modifierCount) + ")";
+                list.push_back(effect);
+            }
+            if (effects.damage)
+            {
+                Json damage = {{"damage", *effects.damage}};
+                if (effects.persistent && effects.persistent != effects.damage)
+                    damage["persistent"] = *effects.persistent;
+                list.push_back(damage);
+            }
+            Json extraDamage = Json::array();
+            for (const ExtraDamage& extra : effects.extraDamage)
+            {
+                std::optional<std::string> dice = DiceAt(extra.formula, rank);
+                if (!dice)
+                    SkipSpell("an outcome deals damage of its own, which isn't converted",
+                              std::string(heading) + ": " + extra.formula);
+                Json entry = {{"dice", *dice}, {"type", extra.type}};
+                if (extra.persistent)
+                    entry["category"] = "persistent";
+                extraDamage.push_back(entry);
+            }
+            if (!extraDamage.empty())
+                list.push_back({{"extraDamage", extraDamage}});
+            if (!list.empty())
+                outcomes[key] = list;
+        }
+        return outcomes;
+    };
+    conversion.outcomes = outcomesAt(baseRank);
+    Json previous = conversion.outcomes;
+    for (int rank = baseRank + 1; rank <= 10; ++rank)
+    {
+        Json atRank = outcomesAt(rank);
+        if (atRank != previous)
+            conversion.heightened[std::to_string(rank)]["outcomes"] = atRank;
+        previous = atRank;
+    }
+    return conversion;
+}
+
+/**
+ * @brief   Persistent damage the main text gives as an inline roll ("4d8 fire damage and
+ *          @Damage[2d6[persistent,fire]] damage"), for a spell whose outcomes scale persistent damage that Foundry's
+ *          damage data doesn't have.
+ * @param   [in] rest - The description without its outcome and Heightened paragraphs.
+ * @param   [in] baseRank - The spell's rank (1 for a cantrip).
+ * @param   [out] formula - The roll's formula, to heighten it.
+ * @return  The damage at the spell's rank; nothing unless there's exactly one such roll and it can be worked out.
+ */
+std::optional<DamageEntry> MainTextPersistent(const std::string& rest, int baseRank, std::string& formula)
+{
+    static const std::regex roll(R"(@Damage\[([^\[\]]+)\[([a-z,]+)\](?:\|[^\]]*)?\])");
+    static const std::regex persistentTrait(R"(,persistent,|^,|,$)");
+    std::vector<DamageEntry> found;
+    for (std::sregex_iterator match(rest.begin(), rest.end(), roll), end; match != end; ++match)
+    {
+        std::string traits = "," + (*match)[2].str() + ",";
+        bool persistent = traits.find(",persistent,") != std::string::npos || traits == ",bleed,";
+        std::string type = std::regex_replace(traits, persistentTrait, "");
+        if (!persistent || type.find(',') != std::string::npos)
+            continue;
+        formula = (*match)[1].str();
+        std::optional<std::string> dice = DiceAt(formula, baseRank);
+        if (!dice)
+            return std::nullopt;
+        found.push_back(DamageEntry{"main-text", *dice, type, "persistent"});
+    }
+    if (found.size() != 1)
+        return std::nullopt;
+    return found.front();
+}
+
+/**
+ * @brief   Heightens persistent damage from the main text (see MainTextPersistent()) by a "Heightened (+N)" step,
+ *          when its formula grows evenly with the rank.
+ * @param   [in] formula - Its formula.
+ * @param   [in] entry - The damage at the spell's rank.
+ * @param   [in] baseRank - The spell's rank (1 for a cantrip).
+ * @param   [in, out] definition - Gets the step in "heightened".
+ * @return  True if the damage doesn't change with the rank, or a step describes how it does.
+ */
+bool HeightenMainTextPersistent(const std::string& formula, const DamageEntry& entry, int baseRank, Json& definition)
+{
+    static const std::regex dice(R"((\d+)d(\d+))");
+    auto amount = [&](int rank) {
+        std::smatch parts;
+        std::string text = DiceAt(formula, rank).value_or("0");
+        return std::regex_match(text, parts, dice) ? std::stoi(parts[1].str()) : std::stoi(text);
+    };
+    bool changes = false;
+    for (int rank = baseRank + 1; rank <= 10; ++rank)
+        changes = changes || amount(rank) != amount(baseRank);
+    if (!changes)
+        return true;
+
+    const Json* existing = Find(definition, "heightened");
+    std::vector<int> intervals{1, 2, 3, 4};
+    if (existing && existing->contains("every"))
+        intervals = {existing->at("every").get<int>()};
+    for (int every : intervals)
+    {
+        int step = baseRank + every <= 10 ? amount(baseRank + every) - amount(baseRank) : 0;
+        bool even = step > 0;
+        for (int rank = baseRank; rank <= 10 && even; ++rank)
+            even = amount(rank) == amount(baseRank) + (rank - baseRank) / every * step;
+        if (!even)
+            continue;
+        std::smatch parts;
+        std::string die = std::regex_match(entry.formula, parts, dice) ? "d" + parts[2].str() : "";
+        Json& heightened = definition["heightened"];
+        heightened["every"] = every;
+        heightened["damage"].push_back({{"dice", std::to_string(step) + die}, {"type", entry.type},
+                                        {"category", "persistent"}});
+        return true;
+    }
+    return false;
 }
 
 /**
@@ -1239,6 +1444,8 @@ struct EffectContents
 {
     std::vector<EffectModifier> modifiers;  /**< Unconditional flat bonuses and penalties we can express. */
     std::vector<std::string> conditions;    /**< Conditions the effects grant. */
+    std::vector<Json> tempHp;               /**< Temporary HP they give: numbers, or formulas on the rank. */
+    std::vector<Json> fastHealing;          /**< Fast healing (or regeneration) per turn, the same way. */
     std::vector<std::string> leftOut;       /**< What was left out, for warnings. */
     std::set<LeftOut> leftOutKinds;         /**< The kinds of what was left out. */
 };
@@ -1294,6 +1501,17 @@ void ReadEffectRules(const Json& effect, EffectContents& contents)
                                        (selectorText.empty() ? "" : " (" + selectorText + ")"));
             contents.leftOutKinds.insert(LeftOut::Conditional);
             continue;
+        }
+        // Temporary HP and fast healing count toward healing, when the amount is known when cast.
+        if ((key == "TempHP" || key == "FastHealing") && !conditional && !Find(rule, "events"))
+        {
+            const Json* value = Find(rule, "value");
+            if (value && (value->is_number() ||
+                          (value->is_string() && EvaluateFoundryFormula(value->get<std::string>(), 1))))
+            {
+                (key == "TempHP" ? contents.tempHp : contents.fastHealing).push_back(*value);
+                continue;
+            }
         }
         if (auto defensive = defensiveRules.find(key); defensive != defensiveRules.end())
         {
@@ -1361,23 +1579,38 @@ void ReadEffectRules(const Json& effect, EffectContents& contents)
 Json BuffEffects(const EffectContents& contents, const std::string& recipient, const std::string& spellName,
                  int rank)
 {
+    auto valueAt = [&](const Json& value) {
+        std::optional<double> number;
+        if (value.is_number())
+            number = value.get<double>();
+        else if (value.is_string())
+            number = EvaluateFoundryFormula(value.get<std::string>(), rank);
+        if (!number)
+            SkipSpell("a bonus depends on the caster or on a choice", value.dump());
+        if (std::floor(*number) != *number)
+            SkipSpell("a bonus isn't a whole number", value.dump());
+        return static_cast<int>(*number);
+    };
+    // Several amounts of temporary HP don't stack, and neither does fast healing: the highest counts.
+    auto highest = [&](const std::vector<Json>& values) {
+        int best = 0;
+        for (const Json& value : values)
+            best = std::max(best, valueAt(value));
+        return best;
+    };
+
     Json effects = Json::array();
     for (const std::string& condition : contents.conditions)
         effects.push_back({{"condition", condition}, {"on", recipient}});
+    if (int tempHp = highest(contents.tempHp); tempHp > 0)
+        effects.push_back({{"tempHp", std::to_string(tempHp)}, {"on", recipient}});
+    if (int fastHealing = highest(contents.fastHealing); fastHealing > 0)
+        effects.push_back({{"heal", std::to_string(fastHealing)}, {"on", recipient}});
     for (std::size_t index = 0; index < contents.modifiers.size(); ++index)
     {
         const EffectModifier& modifier = contents.modifiers[index];
-        std::optional<double> value;
-        if (modifier.value.is_number())
-            value = modifier.value.get<double>();
-        else if (modifier.value.is_string())
-            value = EvaluateFoundryFormula(modifier.value.get<std::string>(), rank);
-        if (!value)
-            SkipSpell("a bonus depends on the caster or on a choice", modifier.value.dump());
-        if (std::floor(*value) != *value)
-            SkipSpell("a bonus isn't a whole number", modifier.value.dump());
         Json effect = {{"modifier", modifier.type},
-                       {"value", static_cast<int>(*value)},
+                       {"value", valueAt(modifier.value)},
                        {"on", recipient},
                        {"appliesTo", modifier.appliesTo}};
         // The same source never stacks, so a second modifier from the same spell needs its own.
@@ -1415,7 +1648,8 @@ bool ConvertSpellEffects(const std::vector<std::string>& effectNames,
             SkipSpell("links a spell effect that wasn't found", name);
         ReadEffectRules(Json::parse(found->second), contents);
     }
-    if (contents.modifiers.empty() && contents.conditions.empty())
+    if (contents.modifiers.empty() && contents.conditions.empty() && contents.tempHp.empty() &&
+        contents.fastHealing.empty())
     {
         std::string detail;
         for (const std::string& part : contents.leftOut)
@@ -1450,6 +1684,8 @@ bool ConvertSpellEffects(const std::vector<std::string>& effectNames,
         definition["heightened"] = heightened;
     for (const std::string& part : contents.leftOut)
         warnings.push_back("left out: " + part);
+    if (!contents.fastHealing.empty())
+        warnings.push_back("fast healing counts once, as healing (one round)");
     return true;
 }
 
@@ -1636,6 +1872,7 @@ Json Convert(const Json& spell, const std::map<std::string, std::string>& spellE
         definition["cantrip"] = true;
     else
         definition["rank"] = system.at("level").at("value").get<int>();
+    int baseRank = definition.contains("rank") ? definition.at("rank").get<int>() : 1;  // a cantrip heightens from 1
     if (!traits.empty())
         definition["traits"] = traits;
 
@@ -1671,6 +1908,9 @@ Json Convert(const Json& spell, const std::map<std::string, std::string>& spellE
     std::string description = Find(system, "description") ? TextAt(system.at("description"), "value") : "";
     std::string rest;
     std::map<std::string, std::string> paragraphs = DegreeParagraphs(description, rest);
+    Json rankOutcomes = Json::object();  // "Heightened (Nth)" entries for the outcomes' own damage
+    std::optional<DamageEntry> mainText;  // persistent damage only the main text gives
+    std::string mainTextFormula;
 
     if (healing)
     {
@@ -1700,9 +1940,27 @@ Json Convert(const Json& spell, const std::map<std::string, std::string>& spellE
         else if (paragraphs.empty())
             SkipSpell("has an attack roll or a save, but its effects aren't listed");
 
-        bool damageStated = false;
         std::size_t warningCount = warnings.size();
-        Json outcomes = ConvertOutcomes(paragraphs, entries, TextAt(spell, "name"), damageStated, warnings);
+        OutcomeConversion conversion = ConvertOutcomes(paragraphs, entries, TextAt(spell, "name"), baseRank, warnings);
+        const Json& outcomes = conversion.outcomes;
+        rankOutcomes = conversion.heightened;
+        bool damageStated = conversion.damageStated;
+
+        // The outcomes scale persistent damage that only the main text gives.
+        bool hasPersistent = std::any_of(entries.begin(), entries.end(),
+                                         [](const DamageEntry& entry) { return entry.category == "persistent"; });
+        if (conversion.persistentStated && !hasPersistent && !entries.empty())
+        {
+            if (std::optional<DamageEntry> lasting = MainTextPersistent(rest, baseRank, mainTextFormula))
+            {
+                entries.push_back(*lasting);
+                definition["damage"] = DamageList(entries);
+                mainText = lasting;
+            }
+            else
+                warnings.push_back("the outcomes scale persistent damage that Foundry's damage data doesn't have, "
+                                   "and the description doesn't give it once");
+        }
         if (entries.empty() && outcomes.empty())
             SkipSpell("outcome text isn't understood",
                       warnings.size() > warningCount ? warnings[warningCount] : "no outcome does anything");
@@ -1717,14 +1975,37 @@ Json Convert(const Json& spell, const std::map<std::string, std::string>& spellE
             definition["outcomes"] = outcomes;
     }
     ConvertHeightening(system, entries, definition);
+    for (const auto& [rank, patch] : rankOutcomes.items())
+        definition["heightened"][rank]["outcomes"] = patch.at("outcomes");
+    if (mainText && !HeightenMainTextPersistent(mainTextFormula, *mainText, baseRank, definition))
+        warnings.push_back("the persistent damage from the description isn't heightened (its formula doesn't grow "
+                           "evenly)");
+    static const std::regex heightenedPersistent(R"(<strong>Heightened[^<]*</strong>[^<]*persistent)");
+    static const std::regex heightenedWeakness(R"(<strong>Heightened[^<]*</strong>[^<]*weakness)");
+    if (definition.contains("outcomes") && definition.at("outcomes").dump().find("\"weakness\"") != std::string::npos &&
+        std::regex_search(description, heightenedWeakness))
+        warnings.push_back("a weakness an outcome gives isn't heightened (the Heightened entry that raises it isn't "
+                           "read)");
+    if (mainText && mainTextFormula.find('@') == std::string::npos &&
+        std::regex_search(description, heightenedPersistent))
+        warnings.push_back("the persistent damage from the description isn't heightened (the Heightened entry that "
+                           "raises it isn't read)");
 
     // Things the conversion leaves out, for someone to check.
+    bool ownDamage = definition.contains("outcomes") && definition.at("outcomes").dump().find("\"extraDamage\"") !=
+                                                             std::string::npos;
+    if (ownDamage && rankOutcomes.empty() && description.find("<strong>Heightened") != std::string::npos)
+        warnings.push_back("damage an outcome deals of its own isn't heightened (Foundry writes it without a formula "
+                           "on the rank)");
     if (const Json* overlays = Find(system, "overlays"); overlays && !overlays->empty())
         warnings.push_back("has variants (Foundry overlays); only the base version was imported");
     if (rest.find("@UUID[Compendium.pf2e.conditionitems.") != std::string::npos ||
         rest.find("@UUID[Compendium.pf2e.spell-effects.") != std::string::npos)
         warnings.push_back("the description has more effects (a condition or spell effect outside the outcomes)");
-    if (rest.find("@Damage[") != std::string::npos)
+    std::size_t inlineRolls = 0;
+    for (std::size_t at = rest.find("@Damage["); at != std::string::npos; at = rest.find("@Damage[", at + 1))
+        ++inlineRolls;
+    if (inlineRolls > (mainText ? 1u : 0u))
         warnings.push_back("the description has more damage (an inline roll outside the outcomes)");
     if (const Json* rules = Find(system, "rules"); rules && !rules->empty())
         warnings.push_back("has Foundry rule elements, which weren't imported");

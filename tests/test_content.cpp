@@ -655,3 +655,48 @@ TEST_CASE("content: a folder can be left out when loading a directory")
     CHECK(std::find(names.begin(), names.end(), "Demoralize") == names.end());
     CHECK(std::find(names.begin(), names.end(), "Sneak Attack") != names.end());
 }
+
+TEST_CASE("content: persistent damage scale, an outcome's own damage, weaknesses and temporary HP")
+{
+    Character caster = MakeCharacter("Caster");
+    Character ally = MakeCharacter("Ally");
+    ContentLibrary library = FromJson(R"json([
+        {"name": "Grip", "check": {"stat": "spell", "save": "Ref"},
+         "damage": [{"dice": "2d6", "type": "acid"}, {"dice": "1d6", "type": "acid", "category": "persistent"}],
+         "outcomes": {
+             "success": [{"damage": "half", "persistent": "none"}],
+             "failure": [{"damage": "normal"}, {"extraDamage": [{"dice": "1d4", "type": "bleed",
+                                                                  "category": "persistent"}]},
+                         {"weakness": 2, "type": "sonic", "until": "endOfActorTurn"}]}},
+        {"name": "Ward", "effects": [{"tempHp": "1d8+2", "on": "ally"}]}])json");
+
+    ActionPtr grip = library.Use("Grip", caster);
+    CHECK(grip->outcomes[kSuccess].damage == DamageScale::Half);
+    CHECK(grip->outcomes[kSuccess].persistent == DamageScale::None);
+    CHECK_FALSE(grip->outcomes[kFail].persistent.has_value());
+    REQUIRE(grip->outcomes[kFail].extraDamage.size() == 1);
+    CHECK(grip->outcomes[kFail].extraDamage[0].type == DamageType::Bleed);
+    CHECK(grip->outcomes[kFail].extraDamage[0].category == DamageCategory::Persistent);
+    REQUIRE(grip->outcomes[kFail].weaknesses.size() == 1);
+    CHECK(grip->outcomes[kFail].weaknesses[0].type == DamageType::Sonic);
+    CHECK(grip->outcomes[kFail].weaknesses[0].value == 2);
+    CHECK(grip->outcomes[kFail].weaknesses[0].to == Who::Enemy);
+    CHECK(grip->outcomes[kFail].weaknesses[0].until.when == Expiry::EndOfTurn);
+
+    // Temporary HP on an ally need one.
+    const HealSpec& ward = library.Use("Ward", caster, {.ally = &ally})->outcomes[kSuccess].tempHp;
+    CHECK(ward.count == 1);
+    CHECK(ward.die == 8);
+    CHECK(ward.flat == 2);
+    CHECK(ward.to == Who::Ally);
+    CHECK_THROWS_AS(library.Use("Ward", caster), ContentError);
+
+    CHECK_THROWS_WITH_AS(FromJson(R"({"name": "A", "effects": [{"weakness": 2}]})"),
+                         doctest::Contains("a weakness effect needs a \"type\""), ContentError);
+    CHECK_THROWS_WITH_AS(FromJson(R"({"name": "B", "effects": [{"weakness": 0, "type": "fire"}]})"),
+                         doctest::Contains("a weakness must be at least 1"), ContentError);
+    CHECK_THROWS_WITH_AS(FromJson(R"({"name": "C", "effects": [{"tempHp": "5"}, {"tempHp": "6"}]})"),
+                         doctest::Contains("an outcome can only give temporary HP once"), ContentError);
+    CHECK_THROWS_WITH_AS(FromJson(R"({"name": "D", "effects": [{"damage": "half", "persistent": "most"}]})"),
+                         doctest::Contains("damage scale"), ContentError);
+}

@@ -13,8 +13,8 @@ namespace
 /**
  * @brief   Whether any effect of an action lands on its ally target.
  * @param   [in] definition - The action.
- * @return  True if a condition, modifier, counter, heal or temporary immunity is on Who::Ally, or it lets the
- *          ally take an action.
+ * @return  True if a condition, modifier, weakness, counter, heal, temporary HP or temporary immunity is on
+ *          Who::Ally, or it lets the ally take an action.
  */
 bool TargetsAlly(const ActionDefinition& definition)
 {
@@ -31,7 +31,12 @@ bool TargetsAlly(const ActionDefinition& definition)
         for (const SetCounter& counter : outcome.counters)
             if (counter.on == Who::Ally)
                 return true;
+        for (const ApplyWeakness& weakness : outcome.weaknesses)
+            if (weakness.to == Who::Ally)
+                return true;
         if (outcome.heal.Any() && outcome.heal.to == Who::Ally)
+            return true;
+        if (outcome.tempHp.Any() && outcome.tempHp.to == Who::Ally)
             return true;
     }
     return std::any_of(definition.grants.begin(), definition.grants.end(),

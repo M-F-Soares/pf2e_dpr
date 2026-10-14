@@ -98,6 +98,22 @@ void BattleState::AddPersistent(int creatureIndex, const DamageComponent& compon
         persistentByType[component.type] = component;
 }
 
+void BattleState::AddWeakness(int creatureIndex, DamageType type, int value, Duration until)
+{
+    auto& weaknesses = creatures[creatureIndex].weaknesses;
+    auto it = weaknesses.find(type);
+    if (it == weaknesses.end() || it->second.value < value)
+        weaknesses[type] = ActiveWeakness{value, until};
+}
+
+DamageDefenses BattleState::Defenses(int creatureIndex, const DamageDefenses& base) const
+{
+    DamageDefenses defenses = base;
+    for (const auto& [type, weakness] : creatures[creatureIndex].weaknesses)
+        defenses.weaknesses.push_back(Weakness{type, weakness.value});
+    return defenses;
+}
+
 void BattleState::ConsumeUses(int creatureIndex, const std::vector<std::string>& sources)
 {
     auto& modifiers = creatures[creatureIndex].modifiers;
@@ -131,5 +147,6 @@ void BattleState::Expire(Expiry when, int creatureIndex)
     {
         std::erase_if(state.conditions, [&](const auto& entry) { return entry.second.until == duration; });
         std::erase_if(state.modifiers, [&](const auto& entry) { return entry.second.until == duration; });
+        std::erase_if(state.weaknesses, [&](const auto& entry) { return entry.second.until == duration; });
     }
 }
