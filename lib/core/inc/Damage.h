@@ -34,6 +34,7 @@ enum class DamageType
     Mental,       /**< Mental. */
     Poison,       /**< Poison. */
     Bleed,        /**< Bleed. */
+    Untyped,      /**< No type, like Implosion's: only resistances and weaknesses to all damage apply. */
     // Only meaningful in resistances/weaknesses:
     Physical,  /**< Resistances and weaknesses only: bludgeoning, piercing and slashing. */
     All,       /**< Resistances and weaknesses only: every damage type. */

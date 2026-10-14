@@ -34,6 +34,8 @@ FOUNDRY_CACHE := .cache/foundry-pf2e
 FOUNDRY_PATHS := packs/pf2e/spells packs/pf2e/spell-effects
 # The commit of a clone, for the import report.
 revision = $$(git -C "$(1)" rev-parse --short HEAD 2>/dev/null || echo unknown)
+# The spells worth importing, and the ones never to import (see the README).
+TRIAGE        := tools/data/spell-triage.tsv
 
 .PHONY: all run test docs clean import
 
@@ -77,7 +79,7 @@ docs:
 # Converts Foundry's spells into data/imported (git-ignored). The only target that uses the network.
 import: $(IMPORTER)
 ifdef FOUNDRY
-	./$(IMPORTER) "$(FOUNDRY)" data data/imported "$(call revision,$(FOUNDRY))"
+	./$(IMPORTER) "$(FOUNDRY)" data data/imported "$(call revision,$(FOUNDRY))" $(TRIAGE)
 else
 	@if [ -d $(FOUNDRY_CACHE)/.git ]; then \
 		echo "Updating $(FOUNDRY_CACHE)"; \
@@ -89,7 +91,7 @@ else
 		git clone --quiet --depth 1 --filter=blob:none --sparse $(FOUNDRY_URL) $(FOUNDRY_CACHE) && \
 		git -C $(FOUNDRY_CACHE) sparse-checkout set $(FOUNDRY_PATHS); \
 	fi
-	./$(IMPORTER) $(FOUNDRY_CACHE) data data/imported "$(call revision,$(FOUNDRY_CACHE))"
+	./$(IMPORTER) $(FOUNDRY_CACHE) data data/imported "$(call revision,$(FOUNDRY_CACHE))" $(TRIAGE)
 endif
 
 clean:

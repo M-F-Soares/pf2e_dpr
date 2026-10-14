@@ -32,6 +32,12 @@ enum class ConditionKind
     Slowed,      /**< Loses `value` actions per turn. */
     Stunned,     /**< Loses `value` actions per turn. */
     Quickened,   /**< Gains 1 action per turn. */
+    Blinded,     /**< Off-guard (its foes are hidden from it), and its attacks need a DC 11 flat check. */
+    Confused,    /**< Off-guard. */
+    Paralyzed,   /**< Off-guard, and can't act. */
+    Unconscious, /**< Off-guard, a -4 status penalty to AC, Perception and Reflex, and can't act. */
+    Fatigued,    /**< -1 status penalty to AC and saves. */
+    Encumbered,  /**< Clumsy 1. */
 };
 
 /**
@@ -53,10 +59,10 @@ const char* ToString(ConditionKind kind);
 std::vector<Modifier> ConditionModifiers(ConditionKind kind, int value);
 
 /**
- * @brief   Change to the number of actions per turn (slowed/stunned/quickened).
+ * @brief   Change to the number of actions per turn (slowed/stunned/quickened, and paralyzed/unconscious).
  * @param   [in] kind - The condition.
  * @param   [in] value - Its value.
- * @return  -value for slowed and stunned, +1 for quickened (when @p value is positive), 0 for every other
- *          condition.
+ * @return  -value for slowed and stunned, +1 for quickened (when @p value is positive), -3 for paralyzed and
+ *          unconscious (no actions), 0 for every other condition.
  */
 int ConditionActionDelta(ConditionKind kind, int value);

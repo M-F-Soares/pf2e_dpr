@@ -1,10 +1,10 @@
 /**
  * @file    ImportFoundry.cpp
  * @brief   The importer program (`make import`): converts Foundry VTT's spells into content definitions.
- * @details Usage: `import-foundry <foundry-clone> <data-dir> <output-dir> [source-revision]`. Writes
- *          `<output-dir>/spells.json` and `<output-dir>/import-report.md`, and prints a summary. Spells already
- *          defined by hand in `<data-dir>` are left out, so hand-written definitions win. Buffs need the clone's
- *          spell effect folder too.
+ * @details Usage: `import-foundry <foundry-clone> <data-dir> <output-dir> [source-revision] [triage-list]`.
+ *          Writes `<output-dir>/spells.json` and `<output-dir>/import-report.md`, and prints a summary. Spells
+ *          already defined by hand in `<data-dir>` are left out, so hand-written definitions win, and so are the
+ *          spells the triage list leaves out. Buffs need the clone's spell effect folder too.
  */
 
 #include "ContentLibrary.h"
@@ -20,6 +20,7 @@
 #include <iostream>
 #include <iterator>
 #include <map>
+#include <optional>
 #include <regex>
 #include <set>
 #include <sstream>
@@ -135,8 +136,43 @@ struct ImportResult
     std::size_t effectCount = 0;                                  /**< Spell effects read from Foundry. */
     std::vector<std::pair<std::string, Json>> imported;           /**< Converted definitions, by name. */
     std::map<std::string, std::vector<std::string>> warnings;     /**< Things to check, by spell name. */
-    std::map<std::string, std::vector<SkippedSpell>> skipped;     /**< Spells left out, by reason. */
+    std::map<std::string, std::vector<SkippedSpell>> skipped;     /**< Spells still to import, by reason. */
+    std::vector<std::string> handWritten;                         /**< Spells defined by hand in the data folder. */
+    std::map<std::string, std::vector<std::string>> triaged;      /**< Spells the triage leaves out, by group. */
+    std::optional<SpellTriage> triage;                            /**< The triage list, if one was given. */
+    std::vector<std::string> triageNotFound;                      /**< Triaged spells Foundry's data doesn't have. */
 };
+
+/**
+ * @brief   How the spells the triage found worth importing fared.
+ */
+struct TriageProgress
+{
+    std::size_t total = 0;       /**< Spells worth importing. */
+    std::size_t imported = 0;    /**< Imported. */
+    std::size_t handWritten = 0; /**< Defined by hand. */
+    std::size_t remaining = 0;   /**< Still to import. */
+};
+
+/**
+ * @brief   Counts how the spells the triage found worth importing fared.
+ * @param   [in] result - The import, with a triage.
+ * @return  The counts.
+ */
+TriageProgress Progress(const ImportResult& result)
+{
+    TriageProgress progress;
+    const std::set<std::string>& contributing = result.triage->contributing;
+    progress.total = contributing.size();
+    for (const auto& [name, definition] : result.imported)
+        progress.imported += contributing.count(name);
+    for (const std::string& name : result.handWritten)
+        progress.handWritten += contributing.count(name);
+    for (const auto& [reason, spells] : result.skipped)
+        for (const SkippedSpell& spell : spells)
+            progress.remaining += contributing.count(spell.name);
+    return progress;
+}
 
 /**
  * @brief   The reason in a ParseDefinitions() error, without the file and definition it names.
@@ -168,43 +204,78 @@ std::string TableCell(std::string text)
 }
 
 /**
- * @brief   The skip reasons, most common first.
- * @param   [in] result - The import.
- * @return  (reason, spells) pairs.
+ * @brief   Lists by key, most entries first.
+ * @tparam  Entry - What the lists hold.
+ * @param   [in] lists - The lists, by key (a reason or a group).
+ * @return  (key, list) pairs.
  */
-std::vector<std::pair<std::string, std::vector<SkippedSpell>>> ReasonsByCount(const ImportResult& result)
+template <typename Entry>
+std::vector<std::pair<std::string, std::vector<Entry>>> ByCount(const std::map<std::string, std::vector<Entry>>& lists)
 {
-    std::vector<std::pair<std::string, std::vector<SkippedSpell>>> reasons(result.skipped.begin(),
-                                                                          result.skipped.end());
-    std::stable_sort(reasons.begin(), reasons.end(),
+    std::vector<std::pair<std::string, std::vector<Entry>>> sorted(lists.begin(), lists.end());
+    std::stable_sort(sorted.begin(), sorted.end(),
                      [](const auto& left, const auto& right) { return left.second.size() > right.second.size(); });
-    return reasons;
+    return sorted;
 }
 
 /**
  * @brief   The import report, in Markdown.
  * @param   [in] result - The import.
  * @param   [in] revision - Foundry's commit the spells came from.
- * @return  The report: counts, skip reasons by count, warnings, and every spell left out with its reason.
+ * @return  The report: counts, progress on the triage, reasons and groups by count, warnings, and every spell
+ *          left out with its reason or group.
  */
 std::string Report(const ImportResult& result, const std::string& revision)
 {
-    std::size_t skippedCount = result.spellCount - result.imported.size();
+    std::size_t remainingCount = 0;
+    for (const auto& [reason, spells] : result.skipped)
+        remainingCount += spells.size();
+    std::size_t triagedCount = 0;
+    for (const auto& [group, names] : result.triaged)
+        triagedCount += names.size();
+
     std::ostringstream report;
     report << "# Foundry VTT spell import\n\n"
            << "Spells from github.com/foundryvtt/pf2e at commit `" << revision << "`, made by `make import`. "
            << "Don't edit this folder; change the importer or write the definition by hand in data/, and import "
            << "again.\n\n"
            << "Imported **" << result.imported.size() << "** of " << result.spellCount << " spells ("
-           << result.warnings.size() << " with something to check). Left out: " << skippedCount << ".\n\n"
+           << result.warnings.size() << " with something to check). Written by hand in data/: "
+           << result.handWritten.size() << ". Left out by the triage: " << triagedCount
+           << ". Still to import: " << remainingCount << ".\n\n"
            << (result.effectCount > 0
                    ? "Buffs were read from " + std::to_string(result.effectCount) + " spell effects.\n\n"
                    : std::string("No spell effects were found, so buffs were left out.\n\n"));
+    if (result.triage)
+    {
+        TriageProgress progress = Progress(result);
+        report << "Of the " << progress.total << " spells the triage (tools/data/spell-triage.tsv) found worth "
+               << "importing, **" << progress.imported << "** are imported and " << progress.handWritten
+               << " are written by hand; " << progress.remaining << " are still to import.\n\n";
+        if (!result.triageNotFound.empty())
+        {
+            report << "The triage lists " << result.triageNotFound.size()
+                   << " spells that aren't in Foundry's data (renamed or removed):";
+            for (std::size_t index = 0; index < result.triageNotFound.size(); ++index)
+                report << (index == 0 ? " " : ", ") << result.triageNotFound[index];
+            report << ".\n\n";
+        }
+    }
+    else
+        report << "No triage list was given, so no spell was left out on purpose.\n\n";
 
-    report << "## Left out, by reason\n\n| Spells | Reason |\n|---:|---|\n";
-    auto reasons = ReasonsByCount(result);
+    report << "## Still to import, by reason\n\n| Spells | Reason |\n|---:|---|\n";
+    auto reasons = ByCount(result.skipped);
     for (const auto& [reason, spells] : reasons)
         report << "| " << spells.size() << " | " << TableCell(reason) << " |\n";
+
+    auto groups = ByCount(result.triaged);
+    if (!groups.empty())
+    {
+        report << "\n## Left out by the triage, by group\n\n| Spells | Group |\n|---:|---|\n";
+        for (const auto& [group, names] : groups)
+            report << "| " << names.size() << " | " << TableCell(group) << " |\n";
+    }
 
     report << "\n## Imported, with something to check\n\n";
     for (const auto& [name, notes] : result.warnings)
@@ -215,12 +286,27 @@ std::string Report(const ImportResult& result, const std::string& revision)
     for (const auto& [name, definition] : result.imported)
         report << "- " << name << "\n";
 
-    report << "\n## Left out\n";
+    report << "\n## Written by hand\n\n";
+    for (const std::string& name : result.handWritten)
+        report << "- " << name << "\n";
+
+    report << "\n## Still to import\n";
     for (const auto& [reason, spells] : reasons)
     {
         report << "\n### " << reason << " (" << spells.size() << ")\n\n";
         for (const SkippedSpell& spell : spells)
             report << "- " << spell.name << (spell.detail.empty() ? "" : ": " + spell.detail) << "\n";
+    }
+
+    if (!groups.empty())
+    {
+        report << "\n## Left out by the triage\n";
+        for (const auto& [group, names] : groups)
+        {
+            report << "\n### " << group << " (" << names.size() << ")\n\n";
+            for (const std::string& name : names)
+                report << "- " << name << "\n";
+        }
     }
     return report.str();
 }
@@ -231,11 +317,12 @@ std::string Report(const ImportResult& result, const std::string& revision)
  * @param   [in] dataFolder - The content folder; its hand-written definitions win over imported ones.
  * @param   [in] outputFolder - Where to write spells.json and the report (usually inside @p dataFolder).
  * @param   [in] revision - Foundry's commit, for the report.
- * @throws  std::runtime_error or ContentError if a folder or file can't be read or written, or the
- *          hand-written content doesn't load.
+ * @param   [in] triageFile - The triage list; empty to import every spell that converts.
+ * @throws  std::runtime_error or ContentError if a folder or file can't be read or written, the triage list is
+ *          malformed, or the hand-written content doesn't load.
  */
 void Import(const fs::path& clone, const fs::path& dataFolder, const fs::path& outputFolder,
-            const std::string& revision)
+            const std::string& revision, const fs::path& triageFile)
 {
     fs::path spellFolder = SpellFolder(clone);
     std::map<std::string, std::string> spellEffects = SpellEffects(clone);
@@ -247,6 +334,9 @@ void Import(const fs::path& clone, const fs::path& dataFolder, const fs::path& o
     HookRegistry hooks = HookRegistry::BuiltIn();
     ImportResult result;
     result.effectCount = spellEffects.size();
+    if (!triageFile.empty())
+        result.triage = ReadSpellTriage(ReadFile(triageFile));
+    std::set<std::string> foundryNames;
     std::set<std::string> importedNames;
     for (const fs::path& file : JsonFiles(spellFolder))
     {
@@ -254,17 +344,24 @@ void Import(const fs::path& clone, const fs::path& dataFolder, const fs::path& o
         std::string sourceName = file.lexically_relative(clone).generic_string();
         SpellConversion conversion = ConvertFoundrySpell(ReadFile(file), spellEffects);
         std::string name = conversion.name.empty() ? sourceName : conversion.name;
+        foundryNames.insert(name);
         auto skip = [&](const std::string& reason, const std::string& detail) {
             result.skipped[reason].push_back(SkippedSpell{name, detail});
         };
+        if (result.triage)
+            if (auto leftOut = result.triage->leftOut.find(name); leftOut != result.triage->leftOut.end())
+            {
+                result.triaged[leftOut->second].push_back(name);
+                continue;
+            }
+        if (handWritten.count(name) > 0)
+        {
+            result.handWritten.push_back(name);
+            continue;
+        }
         if (conversion.definition.empty())
         {
             skip(conversion.skipReason, conversion.skipDetail);
-            continue;
-        }
-        if (handWritten.count(name) > 0)
-        {
-            skip("defined by hand in " + dataFolder.generic_string() + "/", "");
             continue;
         }
         if (importedNames.count(name) > 0)
@@ -286,9 +383,20 @@ void Import(const fs::path& clone, const fs::path& dataFolder, const fs::path& o
         if (!conversion.warnings.empty())
             result.warnings[name] = conversion.warnings;
     }
+    if (result.triage)
+    {
+        for (const std::string& name : result.triage->contributing)
+            if (foundryNames.count(name) == 0)
+                result.triageNotFound.push_back(name);
+        for (const auto& [name, group] : result.triage->leftOut)
+            if (foundryNames.count(name) == 0)
+                result.triageNotFound.push_back(name);
+        std::sort(result.triageNotFound.begin(), result.triageNotFound.end());
+    }
 
     std::sort(result.imported.begin(), result.imported.end(),
               [](const auto& left, const auto& right) { return left.first < right.first; });
+    std::sort(result.handWritten.begin(), result.handWritten.end());
     Json spells = Json::array();
     for (const auto& [name, definition] : result.imported)
         spells.push_back(definition);
@@ -306,8 +414,15 @@ void Import(const fs::path& clone, const fs::path& dataFolder, const fs::path& o
               << " have something to check.\n";
     if (spellEffects.empty())
         std::cout << "No spell effects were found in the clone, so buffs were left out.\n";
-    std::cout << "Most common reasons for leaving a spell out:\n";
-    auto reasons = ReasonsByCount(result);
+    if (result.triage)
+    {
+        TriageProgress progress = Progress(result);
+        std::cout << "Of the " << progress.total << " spells worth importing (" << triageFile.generic_string()
+                  << "): " << progress.imported << " imported, " << progress.handWritten << " written by hand, "
+                  << progress.remaining << " still to import.\n";
+    }
+    std::cout << "Most common reasons a spell is still to import:\n";
+    auto reasons = ByCount(result.skipped);
     for (std::size_t index = 0; index < reasons.size() && index < 5; ++index)
         std::cout << "  " << reasons[index].second.size() << "  " << reasons[index].first << "\n";
     std::cout << "Full report: " << reportFile.generic_string() << "\n";
@@ -317,19 +432,21 @@ void Import(const fs::path& clone, const fs::path& dataFolder, const fs::path& o
 /**
  * @brief   Runs the importer.
  * @param   [in] argc - Number of command-line arguments.
- * @param   [in] argv - The Foundry clone, the content folder, the output folder, and optionally the revision.
+ * @param   [in] argv - The Foundry clone, the content folder, the output folder, and optionally the revision and
+ *          the triage list.
  * @return  0, 1 on an error, or 2 for wrong arguments.
  */
 int main(int argc, char* argv[])
 {
-    if (argc < 4 || argc > 5)
+    if (argc < 4 || argc > 6)
     {
-        std::cerr << "usage: import-foundry <foundry-clone> <data-dir> <output-dir> [source-revision]\n";
+        std::cerr << "usage: import-foundry <foundry-clone> <data-dir> <output-dir> [source-revision] "
+                     "[triage-list]\n";
         return 2;
     }
     try
     {
-        Import(argv[1], argv[2], argv[3], argc > 4 ? argv[4] : "unknown");
+        Import(argv[1], argv[2], argv[3], argc > 4 ? argv[4] : "unknown", argc > 5 ? argv[5] : "");
     }
     catch (const std::exception& error)
     {

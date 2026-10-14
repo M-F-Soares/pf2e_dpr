@@ -27,6 +27,7 @@ const char* ToString(DamageType type)
     case DamageType::Mental: return "mental";
     case DamageType::Poison: return "poison";
     case DamageType::Bleed: return "bleed";
+    case DamageType::Untyped: return "untyped";
     case DamageType::Physical: return "physical";
     case DamageType::All: return "all";
     }

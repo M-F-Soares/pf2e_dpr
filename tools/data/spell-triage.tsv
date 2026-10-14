@@ -1,0 +1,1723 @@
+# Hand triage of the Foundry spells the importer couldn't convert (October 2026, Foundry commit 528e5cf).
+# "contributes": changes damage or healing in a fight, so it's worth importing. "left out": it isn't
+# (the group says why), and make import never imports it. Spells not listed are converted as usual.
+name	verdict	group
+500 Toads	left out	utility
+Aberrant Form	left out	battle form
+Aberrant Whispers	contributes	debuff
+Abyssal Plague	contributes	debuff
+Accelerated Decomposition	contributes	damage
+Access Lore	left out	utility
+Achaekek's Clutch	contributes	damage
+Acid Grip	contributes	damage
+Acid Splash	contributes	damage
+Adapt Self	left out	utility
+Adaptive Ablation	left out	enemy action
+Advanced Scurvy	contributes	debuff
+Aerial Form	left out	battle form
+Agile Feet	left out	movement
+Agitate	left out	enemy action
+Air Bubble	left out	utility
+Air Walk	left out	movement
+Airburst	left out	enemy turn
+Airlift	left out	movement
+Alarm	left out	utility
+Albatross Curse	contributes	debuff
+All is One, One is All	contributes	healing
+Allfood	left out	utility
+Alter Reality	left out	utility
+Amalgamizing Leap	contributes	debuff
+Amity Cycle	left out	long cast
+Ancestral Defense	left out	enemy action
+Ancestral Form	left out	enemy turn
+Ancestral Memories	contributes	offense
+Ancestral Winds	contributes	damage
+Anchoring Air	left out	enemy action
+Ancient Dust	contributes	damage
+Angel Form	left out	battle form
+Angelic Halo	contributes	healing
+Angelic Messenger	left out	utility
+Angelic Wings	left out	movement
+Anima Invocation (Modified)	left out	long cast
+Animal Feature	contributes	offense
+Animal Form	left out	battle form
+Animal Messenger	left out	utility
+Animal Vision	left out	utility
+Animate Object	left out	summon
+Animate Rope	left out	movement
+Animus Mine	left out	enemy action
+Annunciation of the Outer Gate	contributes	debuff
+Anointed Ground	left out	long cast
+Ant Haul	left out	utility
+Anticipate Peril	left out	utility
+Antimagic Artifice	left out	utility
+Antimagic Field	left out	enemy turn
+Antlion Trap	left out	movement
+Apex Companion	contributes	offense
+Appeal to Authority	contributes	debuff
+Appearance of Wealth	left out	enemy turn
+Approximate	left out	utility
+Aqueous Orb	contributes	debuff
+Arcane Countermeasure	left out	enemy action
+Arcane Weaving	left out	utility
+Arctic Rift	contributes	damage
+Armor of Bones	left out	enemy turn
+Armor of Thorn and Claw	left out	enemy action
+Arms of Nature	contributes	offense
+Army of Shadows	left out	utility
+Aromatic Lure	contributes	debuff
+Artistic Flourish	contributes	offense
+Artistic Recollection	left out	utility
+Ash Cloud	contributes	damage
+Ash Form	contributes	healing
+Ash-Strewn Ending	left out	long cast
+Asmodean Wager	left out	utility
+Aspirational State	left out	utility
+Astral Labyrinth	left out	enemy turn
+Astral Projection	left out	utility
+Astral Rain	contributes	damage
+Athletic Rush	left out	skill-only
+Atone	left out	utility
+Attacked from Within	contributes	damage
+Augmented Body	contributes	offense
+Augury	left out	utility
+Aura of the Unremarkable	left out	utility
+Avatar	left out	battle form
+Avenging Wildwood	contributes	damage
+Awaken Animal	left out	utility
+Awaken Curse	left out	utility
+Awaken Object	left out	utility
+Awaken Portal	left out	utility
+Bacchanalia	left out	utility
+Band of Heroes	left out	long cast
+Bandit's Doom	left out	long cast
+Bane	left out	enemy turn
+Banishing Touch	contributes	damage
+Banishment	left out	enemy turn
+Bathe in Blood	left out	utility
+Beastmaster Trance	left out	utility
+Beckon the Blasphemous Brethren	left out	summon
+Bee-Man's Summons	left out	utility
+Befitting Attire	left out	utility
+Befuddle	contributes	debuff
+Begone	contributes	damage
+Beheading Buzz Saw	contributes	damage
+Behold the Weave	left out	enemy action
+Belittling Boast	contributes	debuff
+Beseech Arcanotheign	contributes	damage
+Beseech the Sphinx	left out	enemy turn
+Bestial Curse	contributes	debuff
+Bilocation	left out	utility
+Bind Heroic Spirit	contributes	offense
+Bind Undead	left out	enemy turn
+Binding Circle	left out	summon
+Binding Muzzle	left out	enemy turn
+Bit of Luck	left out	enemy turn
+Blackfinger's Blades	contributes	offense
+Blanket of Stars	contributes	offense
+Blast of the Bellows	left out	movement
+Blazing Armory	contributes	offense
+Blazing Blade	contributes	damage
+Blazing Bolt	contributes	damage
+Bless	contributes	offense
+Blessed Boundary	contributes	damage
+Blessing of Defiance	left out	enemy turn
+Blessing of Vigor	contributes	healing
+Blight	left out	utility
+Blind Eye	left out	utility
+Blinding Beauty	contributes	debuff
+Blinding Bottle	contributes	damage
+Blinding Fury	left out	enemy action
+Blindness	contributes	debuff
+Blink Charge	contributes	damage
+Blister	contributes	damage
+Blister Bomb	contributes	debuff
+Blistering Invective	contributes	damage
+Blood Chestnuts	contributes	damage
+Blood Duplicate	left out	utility
+Blood Feast	contributes	damage
+Blood Infusion	contributes	damage
+Blood Runs Cold	contributes	damage
+Blood Vendetta	left out	enemy action
+Blood Ward	left out	enemy turn
+Bloodspray Curse	contributes	damage
+Blossoming Gore	contributes	damage
+Blunt the Final Blade	left out	utility
+Bonding Meal	left out	utility
+Bone Flense	contributes	offense
+Bone Moth's Kiss	contributes	debuff
+Bone Shield	left out	enemy turn
+Boneshaker	contributes	damage
+Bonewall Bulwark	contributes	damage
+Booming Blast	contributes	damage
+Boost Eidolon	contributes	offense
+Boots on the Ground	left out	utility
+Borrow Time	left out	utility
+Bottle the Storm	left out	enemy action
+Bottomless Stomach	left out	utility
+Bound in Death	contributes	damage
+Bountiful Oasis	left out	utility
+Bracing Tendrils	left out	movement
+Brand the Impenitent	contributes	debuff
+Breadcrumbs	left out	utility
+Bridge of Graves	left out	movement
+Bridge of Vines	left out	enemy action
+Briny Bolt	contributes	damage
+Bullhorn	left out	skill-only
+Buoyant Bubbles	left out	utility
+Burglar's Blind	contributes	offense
+Burning Blossoms	contributes	damage
+Burning Trail	contributes	damage
+Burrow Ward	left out	movement
+Bursting Bloom	contributes	damage
+Butterfly Bender	left out	utility
+Buzzing Bites	contributes	damage
+Buzzing Servants	left out	utility
+Cackle	contributes	offense
+Calcification	contributes	debuff
+Call Fluxwraith	contributes	debuff
+Call Spirit	left out	utility
+Call of the Grave	contributes	debuff
+Call to Arms	contributes	healing
+Calm	left out	enemy turn
+Canopy Crawler	left out	movement
+Canticle of Everlasting Grief	contributes	damage
+Capital Dividend	left out	enemy action
+Captivating Adoration	left out	enemy turn
+Carrion Mire	contributes	debuff
+Carryall	left out	utility
+Cast into Time	contributes	damage
+Caster's Imposition	left out	utility
+Catch Your Name	left out	utility
+Cauterize Wounds	contributes	cure
+Celestial Accord	left out	enemy turn
+Celestial Brand	contributes	damage
+Censure Falsehoods	contributes	debuff
+Chameleon Coat	left out	skill-only
+Champion's Sacrifice	left out	enemy action
+Channel Arrogance	contributes	damage
+Charged Javelin	contributes	damage
+Charitable Urge	left out	enemy turn
+Charm	left out	enemy turn
+Charming Push	left out	enemy turn
+Charming Touch	left out	enemy turn
+Chastising Retort	left out	enemy action
+Chilling Spray	contributes	damage
+Choking Fog	left out	enemy turn
+Chosen Gravity	left out	movement
+Chroma Leach	contributes	debuff
+Chromatic Armor	left out	enemy turn
+Chromatic Image	left out	enemy turn
+Chromatic Ray	contributes	damage
+Chromatic Wall	left out	enemy action
+Chrysopoetic Curse	contributes	debuff
+Chthonian Wrath	contributes	damage
+Cinder Gaze	left out	long cast
+Cinder Scribe	left out	utility
+Cinder Swarm	contributes	damage
+Circle of Weakness	contributes	debuff
+City of Sin	left out	utility
+Clad In Metal	contributes	offense
+Claim Curse	left out	utility
+Claim Undead	contributes	debuff
+Clairaudience	left out	utility
+Clairvoyance	left out	utility
+Claws of the Otter	contributes	offense
+Clawsong	contributes	offense
+Cleanse Affliction	contributes	cure
+Cleanse Air	left out	utility
+Cleanse Cuisine	left out	utility
+Cleansing Flames	contributes	cure
+Clear Mind	contributes	cure
+Clinging Ice	contributes	damage
+Clinging Shadows Stance	contributes	offense
+Cloak of Colors	left out	enemy turn
+Cloak of Light	contributes	damage+healing
+Cloak of Shadow	contributes	offense
+Clockwork Devotion	contributes	damage
+Clone	left out	utility
+Clone Companion	contributes	offense
+Cloud Current	left out	movement
+Cloud Dragon's Cloak	left out	enemy action
+Cloudborne Haven	left out	utility
+Clouded Focus	left out	utility
+Clownish Curse	left out	skill-only
+Coiling Dance	contributes	offense
+Collective Memories	left out	utility
+Collective Transposition	left out	movement
+Combustion	contributes	damage
+Comet Charge	contributes	damage
+Command	contributes	debuff
+Commanding Lash	contributes	debuff
+Commune	left out	utility
+Commune with Corazal	left out	utility
+Community Repair	left out	utility
+Community Restoration	contributes	healing
+Companion's Shadow	contributes	offense
+Compel True Name	left out	enemy turn
+Concealment's Curtain	left out	long cast
+Concordant Choir	contributes	damage
+Conductive Weapon	contributes	offense
+Confetti Cloud	left out	enemy turn
+Confound the Eye and Confuse the Mind	left out	utility
+Confusing Colors	contributes	debuff
+Confusing Cry	contributes	debuff
+Confusion	contributes	debuff
+Conglomerate of Limbs	contributes	damage
+Conjured Conveyance	left out	utility
+Conjurer's Countermeasure	left out	enemy turn
+Connective Current	left out	movement
+Conquering Soldiers	contributes	damage
+Consecrate	left out	long cast
+Consecrate Flesh	contributes	damage
+Construct Mindscape	left out	utility
+Consuming Darkness	contributes	damage
+Contact Friends	left out	utility
+Contagious Idea	contributes	debuff
+Containment	left out	enemy turn
+Contingency	left out	utility
+Control Currents	left out	movement
+Control Sand	contributes	damage
+Control Water	left out	enemy turn
+Control Weather	left out	utility
+Coral Scourge	contributes	debuff
+Cordyceps Command	contributes	debuff
+Corpse Communion	left out	utility
+Corrosive Body	contributes	damage
+Cosmic Form	left out	battle form
+Counter Performance	left out	enemy action
+Countless Eyes	left out	enemy turn
+Courageous Anthem	contributes	offense
+Cozy Cabin	left out	utility
+Cradle Aloft	left out	utility
+Create Demiplane	left out	utility
+Create Earthen Facsimile	left out	utility
+Create Food	left out	utility
+Create Mycoguardian	left out	summon
+Create Skinstitch	left out	summon
+Create Thrall	left out	summon
+Create Undead	left out	summon
+Create Water	left out	utility
+Creation	left out	utility
+Creative Splash	contributes	debuff
+Crescent Scepter	left out	enemy action
+Crimson Breath	contributes	damage
+Crisis of Faith	contributes	damage
+Croak Voice	left out	enemy action
+Crucible of Iron	contributes	damage
+Crusade	left out	enemy turn
+Crushing Ground	contributes	damage
+Cryostasis	left out	utility
+Cup of Dust	contributes	debuff
+Curse of Calamity	left out	long cast
+Curse of Death	contributes	damage
+Curse of Lost Time	contributes	damage
+Curse of Recoil	left out	enemy action
+Curse of Slippery Steps	left out	movement
+Curse of the Spirit Orchestra	left out	skill-only
+Cursed Metamorphosis	contributes	debuff
+Cutting Eye	left out	enemy action
+Cutting Insult	contributes	damage
+Cycle of Retribution	left out	enemy action
+Cyclone Rondo	contributes	damage
+Daemon Form	left out	battle form
+Daemonic Pact	left out	summon
+Dance of Darkness	contributes	debuff
+Dancing Blade	contributes	damage
+Dancing Shield	left out	enemy turn
+Darkened Eyes	contributes	debuff
+Darkened Forest Form	left out	battle form
+Darkened Sight	left out	utility
+Darkness	contributes	debuff
+Darkvision	left out	utility
+Dawnflower's Light	left out	enemy turn
+Day's Weight	contributes	debuff
+Daydreamer's Curse	left out	enemy turn
+Dazzling Flash	contributes	debuff
+Deafness	left out	enemy turn
+Death Knell	contributes	offense
+Death Ward	left out	enemy turn
+Death's Call	contributes	healing
+Deathless March	contributes	debuff
+Debilitating Terror	left out	enemy turn
+Deceiver's Cloak	left out	utility
+Decompose	left out	utility
+Deep Breath	left out	utility
+Deep Sight	left out	utility
+Defended by Spirits	left out	enemy action
+Defensive Prescience	left out	enemy action
+Dehydrate	contributes	damage
+Deity's Strike	contributes	damage
+Delay Consequence	left out	enemy action
+Deluge	contributes	damage
+Delusional Pride	left out	enemy action
+Demon Form	left out	battle form
+Demonic Pact	left out	summon
+Desperate Repair	left out	enemy action
+Destroy Mindscape	left out	utility
+Destructive Aura	contributes	debuff
+Detect Creator	left out	utility
+Detect Magic	left out	utility
+Detect Metal	left out	utility
+Detect Poison	left out	utility
+Detect Scrying	left out	utility
+Devil Form	left out	battle form
+Devil's Horseshoe	left out	long cast
+Devouring Dark Form	contributes	offense
+Diabolic Edict	contributes	offense
+Diabolic Pact	left out	summon
+Diabolical Mantle	left out	enemy turn
+Diadem of Divine Radiance	contributes	damage
+Dim the Light	contributes	offense
+Dimensional Assault	contributes	damage
+Dimensional Drop	contributes	damage
+Dimensional Excision	contributes	damage
+Dimensional Steps	left out	movement
+Dinosaur Form	left out	battle form
+Dinosaur Fort	left out	summon
+Dirge of Remembrance	contributes	damage
+Disappearance	contributes	offense
+Discern Lies	left out	utility
+Discern Secrets	left out	utility
+Discomfiting Whispers	contributes	damage
+Disguise Magic	left out	utility
+Disintegrate	contributes	damage
+Disjunction	left out	utility
+Dismantle	left out	utility
+Disorienting Flash	contributes	damage
+Dispel Magic	left out	utility
+Dispelling Globe	left out	enemy turn
+Disperse into Air	left out	enemy action
+Disruptive Transfer	left out	enemy turn
+Distortion Lens	left out	utility
+Distracting Chatter	contributes	debuff
+Distracting Decoy	contributes	debuff
+Div Pact	left out	summon
+Dividing Trench	left out	enemy turn
+Divine Aura	left out	enemy turn
+Divine Decree	contributes	damage
+Divine Dragon's Watch	left out	long cast
+Divine Immolation	contributes	damage
+Divine Inspiration	left out	utility
+Divine Keystone	left out	long cast
+Divine Plagues	contributes	debuff
+Divine Wrath	contributes	damage
+Diviner's Sight	left out	enemy turn
+Divinity Leech	contributes	debuff
+Dizzying Colors	contributes	debuff
+Dome of Tranquility	left out	utility
+Dominate	left out	enemy turn
+Domora's Defense	left out	enemy turn
+Door to Beyond	contributes	damage
+Downpour	left out	enemy turn
+Draconic Barrage	contributes	damage
+Dragon Breath	contributes	damage
+Dragon Form	left out	battle form
+Dragon Turret	contributes	damage
+Dragon Wings	left out	movement
+Drain Planar Connection	left out	utility
+Draw Ire	contributes	damage
+Draw Moisture	left out	utility
+Dread Ambience	left out	long cast
+Dread Mosquito Storm	contributes	damage
+Dread Secret	contributes	debuff
+Dream Council	left out	utility
+Dream Message	left out	utility
+Dreamer's Call	contributes	debuff
+Dreaming Potential	left out	utility
+Drop Dead	left out	enemy action
+Dull Ambition	left out	utility
+Duplicate Foe	left out	summon
+Dust Storm	contributes	damage
+Dutiful Challenge	left out	enemy turn
+Déjà Vu	left out	enemy action
+Eagle's Cry	contributes	damage
+Earth and Sky	contributes	damage
+Earthbind	left out	movement
+Earthbreaker Stride	left out	movement
+Earthworks	left out	movement
+Eat Fire	left out	enemy action
+Echoing Weapon	contributes	offense
+Eclipse Burst	contributes	damage
+Ectoplasmic Expulsion	contributes	cure
+Ectoplasmic Interstice	contributes	offense
+Eidolon's Wrath	contributes	damage
+Eject Soul	left out	enemy turn
+Electric Arc	contributes	damage
+Electrified Crystal Ward	left out	enemy action
+Electrostatic Glider	left out	movement
+Element Embodied	left out	battle form
+Elemental Absorption	left out	enemy turn
+Elemental Annihilation Wave	contributes	damage
+Elemental Betrayal	contributes	debuff
+Elemental Blast	contributes	damage
+Elemental Breath	contributes	damage
+Elemental Confluence	contributes	damage
+Elemental Counter	left out	enemy action
+Elemental Form	left out	battle form
+Elemental Gift	contributes	offense
+Elemental Motion	left out	movement
+Elemental Sense	left out	utility
+Elemental Sentinel	left out	utility
+Elemental Servitor	left out	summon
+Elemental Sheath	left out	enemy turn
+Elemental Tempest	contributes	damage
+Elemental Toss	contributes	damage
+Elemental Zone	contributes	offense
+Elephant Form	left out	battle form
+Elysian Whimsy	left out	enemy turn
+Embed Message	left out	utility
+Embodied Font	left out	utility
+Embodiment of Battle	contributes	offense
+Embrace Nothingness	contributes	offense
+Embrace the Pit	left out	enemy turn
+Empathic Link	left out	utility
+Empower Ley Line	left out	utility
+Empty Inside	contributes	cure
+Empty Pack	left out	utility
+Encroaching Woods	left out	utility
+Endure	contributes	healing
+Enduring Might	left out	enemy action
+Energy Absorption	left out	enemy action
+Energy Aegis	left out	long cast
+Enervation	contributes	damage
+Engrave Memory	left out	utility
+Enhance Senses	left out	utility
+Enhance Victuals	left out	utility
+Enlarge	contributes	offense
+Enlarge Companion	contributes	offense
+Entangle Fate	contributes	debuff
+Entangling Flora	left out	movement
+Enthrall	left out	enemy turn
+Entrancing Eyes	contributes	debuff
+Entreat Spirit	left out	enemy turn
+Entreat Thunderbird	left out	utility
+Entropic Wheel	contributes	offense
+Entwined Roots	left out	long cast
+Envenom Companion	contributes	offense
+Environmental Endurance	left out	utility
+Ephemeral Hazards	contributes	damage
+Ephemeral Tracking	left out	utility
+Equal Footing	contributes	debuff
+Erase Trail	left out	utility
+Establish Nexus	left out	utility
+Establish Ward	contributes	damage
+Ethereal Jaunt	left out	movement
+Everlight	left out	utility
+Evil Eye	contributes	debuff
+Evolution Surge	left out	utility
+Exchange Image	left out	utility
+Excise Lexicon	left out	utility
+Expeditious Excavation	contributes	debuff
+Exploding Earth	contributes	damage
+Explosive Dust	left out	enemy action
+Extend Blood Magic	left out	utility
+Extend Boost	left out	utility
+Extend Spell	left out	utility
+Extract Brain	left out	utility
+Extract Poison	contributes	offense
+Extradimensional Cover	left out	enemy turn
+Eyes of the Dead	left out	utility
+Fabricated Truth	left out	utility
+Face in the Crowd	left out	skill-only
+Fact Check	left out	utility
+Faerie Dust	contributes	debuff
+Faerie Fire	contributes	debuff
+Fallen Soldier's Lament	contributes	debuff
+Falling Sky	contributes	damage
+Fallow Field	left out	enemy action
+False Nature	left out	utility
+False Vision	left out	utility
+False Vitality	contributes	healing
+Falsify Heat	left out	utility
+Familiar Form	left out	utility
+Familiar's Call	left out	utility
+Familiar's Face	left out	utility
+Familiar's Resurrection	left out	utility
+Fantastic Facade	left out	utility
+Far Reach	left out	utility
+Far Sight	left out	utility
+Far-Flung Fetch	left out	utility
+Fashionista	left out	skill-only
+Fatal Aria	contributes	damage
+Fate's Travels	left out	utility
+Fated Confrontation	contributes	offense
+Fateful Condemnation	contributes	damage
+Favorable Review	left out	utility
+Fear	contributes	debuff
+Fear the Sun	contributes	debuff
+Fearful Feast	contributes	damage
+Feast of Ashes	contributes	damage
+Feast of Supplication	left out	utility
+Feet to Fins	left out	movement
+Ferrous Form	contributes	offense
+Fetch	left out	utility
+Fey Abeyance	left out	long cast
+Fey Disappearance	contributes	offense
+Fey Form	left out	battle form
+Fey Glamour	left out	utility
+Field of Life	contributes	damage+healing
+Fiendish Rift	contributes	damage
+Fiery Body	contributes	offense
+Figment	left out	skill-only
+Filter Air	left out	enemy action
+Final Fate of the Locust Host	contributes	damage
+Fire Shield	contributes	damage
+Fire's Pathway	left out	utility
+Fireproof	left out	utility
+Firework Blast	contributes	damage
+Fishing Spot	left out	skill-only
+Flame Barrier	left out	enemy action
+Flame Dancer	contributes	offense
+Flame Wisp	contributes	offense
+Flames of Ego	left out	enemy turn
+Flaming Fusillade	contributes	offense
+Flammable Fumes	contributes	damage
+Flashy Disappearance	contributes	offense
+Fleet Step	left out	movement
+Flesh Tsunami	left out	movement
+Flicker	left out	enemy turn
+Floating Harness	left out	utility
+Flourishing Flora	contributes	damage
+Flowing Strike	contributes	damage
+Fly	left out	movement
+Focusing Hum	contributes	cure
+Fold Metal	left out	utility
+Font of Serenity	contributes	cure
+Footholds and Foothills	left out	utility
+Foraging Friends	left out	utility
+Forbidding Ward	left out	enemy turn
+Force Barrage	contributes	damage
+Force Bolt	contributes	damage
+Force Fang	contributes	damage
+Force Fling	contributes	damage
+Force Rain	contributes	damage
+Forced Mercy	left out	enemy turn
+Forced Quiet	left out	utility
+Forceful Hand	left out	enemy turn
+Foresee the Path	left out	enemy action
+Foresight	left out	enemy turn
+Forest of Gates	left out	utility
+Forge	contributes	damage
+Forgotten Lines	left out	utility
+Form of the Sandpoint Devil	left out	battle form
+Fortify Summoning	left out	summon
+Fortifying Brew	left out	long cast
+Fortissimo Composition	contributes	offense
+Foul Miasma	left out	enemy turn
+Fractious Echo	contributes	damage
+Freedom	left out	utility
+Freeze Time	left out	utility
+Freezing Touch	contributes	damage
+Frenzied Revelry	left out	enemy turn
+Friendfetch	left out	movement
+Friendly Push	left out	movement
+Friends to Foes	contributes	damage
+Frost Pillar	contributes	debuff
+Frost's Touch	left out	utility
+Frozen Lungs	contributes	damage
+Fulminating Impact	contributes	damage
+Funeral Flames	contributes	offense
+Fungal Hyphae	contributes	damage
+Fungal Infestation	contributes	damage
+Gale Blast	contributes	damage
+Garden of Death	left out	utility
+Garden of the Green Man's Growth	contributes	damage
+Gasping Marsh	contributes	damage
+Gate	left out	utility
+Gathering Call	left out	utility
+Geas	left out	utility
+Gecko Grip	left out	movement
+Genie's Veil	left out	enemy action
+Gentle Landing	left out	utility
+Geyser	contributes	damage
+Ghost Rush	left out	movement
+Ghost Sound	left out	utility
+Ghostly Carrier	left out	utility
+Ghostly Shift	left out	enemy turn
+Ghostly Tragedy	left out	utility
+Ghostly Transcription	left out	utility
+Ghostly Weapon	contributes	offense
+Ghoulish Cravings	contributes	debuff
+Gift of Dusk	left out	enemy turn
+Gift of the Anemos	left out	enemy action
+Girzanje's March	contributes	offense
+Glacial Causeway	left out	movement
+Glacial Heart	contributes	damage
+Glamorize	left out	utility
+Glance of the Divine	left out	utility
+Glass Form	left out	enemy turn
+Glass Sand	contributes	damage
+Gleaming Pet	contributes	debuff
+Glimmer of Charm	left out	enemy turn
+Glimpse Weakness	contributes	offense
+Glimpse the Truth	left out	utility
+Gloom Mantle	left out	enemy turn
+Glossolalia	left out	enemy turn
+Glowing Trail	left out	utility
+Gluttonous Growth	contributes	damage
+Gnaw at the Moon	left out	utility
+Goblin Pox	contributes	debuff
+Gouging Claw	contributes	damage
+Grasp of the Deep	contributes	damage
+Grasping Earth	contributes	damage
+Grasping Grave	contributes	damage
+Grasping Vine	contributes	debuff
+Grave Impressions	left out	utility
+Gravitational Pull	contributes	debuff
+Gravity Weapon	contributes	offense
+Gravity Well	left out	movement
+Gray Shadow	left out	summon
+Grease	contributes	debuff
+Grim Tendrils	contributes	damage
+Groom Companion	left out	utility
+Guardian's Aegis	left out	long cast
+Guidance	contributes	offense
+Guided Introspection	left out	enemy turn
+Guiding Star	left out	utility
+Gust of Wind	contributes	damage
+Hag's Fruit	left out	long cast
+Halcyon Infusion	left out	utility
+Hallucination	contributes	debuff
+Halt Death	left out	long cast
+Hand of the Apprentice	contributes	damage
+Harm	contributes	damage+healing
+Harrowing	left out	utility
+Haunting Spirit	contributes	damage
+Haven in the Ether	left out	utility
+Heal	contributes	damage+healing
+Heal Animal	contributes	healing
+Heal Companion	contributes	healing
+Healer's Blessing	contributes	healing
+Healing Plaster	left out	utility
+Heart's Desire	contributes	debuff
+Heart's Hook	left out	enemy turn
+Heartbolt	contributes	damage+healing
+Heartbond	left out	utility
+Heat Metal	contributes	damage
+Heatvision	contributes	offense
+Hedge Prison	left out	enemy turn
+Heinous Future	contributes	debuff
+Helpful Reload	contributes	offense
+Helpful Scribe	left out	utility
+Helpful Steps	left out	utility
+Helpful Wood Spirits	contributes	debuff
+Heroic Feat	contributes	offense
+Heroism	contributes	offense
+Hidden Mind	left out	enemy turn
+Hidebound	left out	enemy action
+Hollow Heart	contributes	debuff
+Hologram Cage	left out	utility
+Holy Host	contributes	damage
+Home Among Mulberry Leaves	contributes	damage
+Honeyed Words	left out	skill-only
+Hop, Skip, Jump	left out	movement
+Horde of Underlings	contributes	damage
+Horizon Thunder Sphere	contributes	damage
+Horizon's Veil	left out	enemy turn
+Horrifying Blood Loss	contributes	debuff
+House of Imaginary Walls	left out	utility
+Humanoid Form	contributes	offense
+Hunter's Luck	left out	utility
+Hunter's Vision	contributes	offense
+Hurtling Stone	contributes	damage
+Hydraulic Push	contributes	damage
+Hymn of Healing	contributes	healing
+Hypercognition	left out	utility
+Hypnopompic Terrors	contributes	damage
+Hypnotize	left out	enemy turn
+Ibex's Harvest	contributes	damage
+Ideal Mimicry	left out	long cast
+Ignite Ambition	left out	utility
+Ignite Fireworks	contributes	damage
+Ignition	contributes	damage
+Ill Omen	left out	enemy turn
+Illuminate	left out	utility
+Illusory Creature	contributes	damage
+Illusory Disguise	left out	utility
+Illusory Object	left out	utility
+Illusory Scene	left out	utility
+Illusory Shroud	contributes	offense
+Imaginary Lockbox	left out	utility
+Imitate Fauna	left out	utility
+Imp Sting	contributes	damage
+Impaling Briars	contributes	damage
+Impaling Spike	contributes	damage
+Impart Empathy	left out	utility
+Impeccable Flow	left out	enemy turn
+Impending Doom	contributes	damage
+Implement of Destruction	contributes	damage
+Implosion	contributes	damage
+Imprint Message	left out	utility
+Imprinting Hand	contributes	damage
+Imprisonment	left out	utility
+Incarnate Ancestry	left out	utility
+Incarnate Ancient Specter	contributes	damage
+Incarnate Archmage	contributes	damage
+Incarnate Deific Herald	contributes	damage
+Incarnate Draconic Legion	contributes	damage
+Incarnate Faerie Revelers	contributes	debuff
+Incarnate Kaiju	contributes	damage
+Incarnate Shadow Minuet	contributes	damage
+Incarnate Tempest of Shades	contributes	debuff
+Incarnate Wild Rose	contributes	damage
+Incendiary Ashes	contributes	damage
+Incendiary Aura	contributes	damage
+Indestructibility	left out	enemy turn
+Indolent Haze	contributes	damage
+Inertia Lock	left out	utility
+Inevitable Destination	contributes	debuff
+Inevitable Disaster	contributes	damage
+Inexhaustible Cynicism	contributes	damage
+Infectious Comedy	contributes	debuff
+Infectious Ennui	contributes	debuff
+Infectious Enthusiasm	contributes	offense
+Infectious Melody	left out	enemy turn
+Infernal Supervision	left out	skill-only
+Infiltrator's Tunnel	left out	movement
+Infinitesimal Collapse Field	contributes	debuff
+Information Overload	contributes	debuff
+Infuse Vitality	contributes	offense
+Inner Radiance Torrent	contributes	damage
+Inner Upheaval	contributes	damage
+Inscrutable Mask	left out	skill-only
+Insect Form	left out	battle form
+Inside Ropes	left out	utility
+Instant Armor	left out	utility
+Instant Parade	left out	skill-only
+Instant Pottery	left out	utility
+Interdisciplinary Incantation	left out	utility
+Internal Insurrection	contributes	debuff
+Interplanar Teleport	left out	utility
+Interposing Earth	left out	enemy action
+Inveigle	left out	utility
+Invent Code	left out	utility
+Invisibility	contributes	offense
+Invisibility Cloak	contributes	offense
+Invisibility Curtain	contributes	offense
+Invisible Item	left out	utility
+Invoke True Name	contributes	debuff
+Invoke the Crimson Oath	contributes	damage
+Invoke the Harrow	contributes	debuff
+Iron Gut	left out	utility
+Isolation	left out	utility
+It is Written	contributes	offense
+Item Facade	left out	utility
+Jassim's Allegiance	contributes	damage
+Jealous Hex	contributes	debuff
+Join Pasts	left out	utility
+Jump	left out	movement
+Juvenile Companion	left out	utility
+Kaiju Ward	left out	utility
+Keen Smell	contributes	offense
+Kgalaserke's Axes	contributes	offense
+Ki Cutting Sight	contributes	offense
+Kinetic Ram	contributes	debuff
+King's Castle	left out	movement
+Kiss the Ring	contributes	debuff
+Knock	left out	utility
+Know Location	left out	utility
+Know the Enemy	left out	utility
+Know the Way	left out	utility
+Labyrinthine Prison	left out	utility
+Lashunta's Life Bubble	left out	utility
+Last Night's Vigil	left out	long cast
+Laughing Fit	contributes	debuff
+Lay on Hands	contributes	healing
+Leaden Steps	contributes	debuff
+Leng Sting	contributes	damage
+Levitate	left out	movement
+Liberating Command	contributes	cure
+Life Boost	contributes	healing
+Life Connection	left out	long cast
+Life Pact	left out	long cast
+Life Tap	contributes	healing
+Life's Flowing River	contributes	debuff
+Life's Fresh Bloom	contributes	healing
+Life-Giving Form	contributes	healing
+Lifelink Surge	contributes	healing
+Lifewood Cage	left out	enemy turn
+Lift Nature's Caul	contributes	debuff
+Light	left out	utility
+Light of Revelation	left out	utility
+Lightning Lasso	contributes	damage
+Lignify	left out	enemy turn
+Liminal Doorway	left out	utility
+Lingering Composition	contributes	offense
+Linnorm Sting	contributes	damage
+Live Wire	contributes	damage
+Living Graveyard	contributes	debuff
+Living Terrain	contributes	damage
+Locate	left out	utility
+Lock	left out	utility
+Lock Item	left out	utility
+Loose Time's Arrow	left out	movement
+Loremaster's Etude	left out	utility
+Lose the Path	left out	movement
+Lotus Walk	left out	movement
+Love's Sacrifice	left out	enemy action
+Loyalty's Ward	left out	utility
+Lucky Break	left out	enemy action
+Lucky Month	left out	utility
+Lucky Number	left out	long cast
+Lure Dream	left out	summon
+Luring Wail	contributes	debuff
+Mad Monkeys	left out	enemy turn
+Magic Hide	left out	enemy turn
+Magic Mailbox	left out	utility
+Magic Passage	left out	utility
+Magic Stone	contributes	offense
+Magic Warrior Aspect	left out	movement
+Magic Warrior Transformation	left out	battle form
+Magic's Vessel	left out	enemy turn
+Magical Fetters	contributes	debuff
+Magnetic Attraction	left out	enemy turn
+Magnetic Dominion	left out	movement
+Magnetic Repulsion	left out	enemy turn
+Magnetize	left out	enemy turn
+Malediction	contributes	debuff
+Malicious Shadow	contributes	damage
+Malignant Sustenance	contributes	healing
+Manifest Will	contributes	debuff
+Manifestation	left out	utility
+Manifestation of Spirits	contributes	debuff
+Manifold Lives	contributes	damage
+Mantis Form	left out	battle form
+Mantis's Grasp	contributes	damage
+Mantle of Heaven's Slopes	contributes	offense
+Mantle of the Frozen Heart	contributes	offense
+Mantle of the Magma Heart	contributes	offense
+Mantle of the Melting Heart	contributes	offense
+Mantle of the Unwavering Heart	contributes	healing
+Mariner's Curse	contributes	debuff
+Mark of Blood	left out	utility
+Martyr's Intervention	left out	enemy action
+Marvelous Mount	left out	utility
+Mask of Terror	left out	enemy action
+Massacre	contributes	damage
+Maze of Locked Doors	left out	enemy turn
+Medusa's Wrath	contributes	damage
+Menacing Lament	contributes	debuff
+Mending	left out	utility
+Mental Map	left out	utility
+Mercurial Stride	contributes	damage
+Message	left out	utility
+Message Rune	left out	utility
+Metal Merged	left out	utility
+Metallic Meteorite Glyph	contributes	damage
+Metamorphosis	left out	battle form
+Migration	left out	movement
+Mimic Spell	left out	utility
+Mimic Undead	left out	utility
+Mind Games	left out	enemy turn
+Mind Probe	left out	utility
+Mind Reading	left out	utility
+Mind Swap	left out	utility
+Mind of Menace	left out	long cast
+Mindlink	left out	utility
+Mindscape Door	left out	utility
+Mindscape Shift	left out	utility
+Miracle	left out	utility
+Mirage	left out	utility
+Mirecloak	contributes	damage
+Mirror Image	left out	enemy turn
+Mirror's Misfortune	left out	enemy action
+Mislead	contributes	offense
+Missed Cue	contributes	damage
+Mist	left out	enemy turn
+Mist Sight	contributes	offense
+Misty Memory	left out	utility
+Moment of Renewal	contributes	healing
+Momentary Recovery	left out	movement
+Monstrosity Form	left out	battle form
+Moon Frenzy	contributes	offense
+Moonbeam	contributes	damage
+Moonburst	contributes	damage
+Moonlight Bridge	left out	utility
+Morass of Ages	contributes	debuff
+Mosquito Blight	left out	long cast
+Mother's Blessing	left out	utility
+Mountain Resilience	left out	enemy turn
+Movanic Glimmer	contributes	offense
+Mud Pit	left out	movement
+Murmuration	left out	enemy action
+Muscle Barrier	contributes	healing
+Mushroom Patch	left out	enemy turn
+Musical Accompaniment	left out	skill-only
+Musical Shift	contributes	offense
+Mutilate	contributes	damage
+Mycological Malady	contributes	debuff
+Mystic Armor	left out	enemy turn
+Mystic Beacon	contributes	offense
+Mystic Carriage	left out	utility
+Nature Incarnate	left out	battle form
+Nature's Enmity	contributes	damage
+Nature's Pathway	left out	utility
+Nature's Reprisal	left out	enemy action
+Necrotic Radiation	contributes	damage
+Necrotize	contributes	damage
+Needle Darts	contributes	damage
+Negate Aroma	left out	utility
+Nettleskin	left out	enemy action
+Never Mind	contributes	debuff
+Nightmare	left out	long cast
+Noise Blast	contributes	damage
+Nothing Up My Sleeve	left out	utility
+Noxious Metals	contributes	damage
+Nudge Fate	contributes	offense
+Nudge the Odds	left out	utility
+Nullify	left out	enemy action
+Nymph's Grace	contributes	debuff
+Oaken Resilience	left out	enemy turn
+Oathkeeper's Insignia	left out	utility
+Object Memory	contributes	offense
+Object Reading	left out	utility
+Oblivious Expulsion	left out	utility
+Ocean's Roar	left out	utility
+Ocular Overload	left out	long cast
+Ode to Ouroboros	left out	utility
+Oil-Slicked Walls	left out	utility
+Omnidirectional Scan	contributes	offense
+One with Plants	left out	utility
+One with Stone	left out	utility
+One with the Land	contributes	damage
+Oneiric Mire	left out	movement
+Ooze Form	left out	battle form
+Open the Wall of Ghosts	left out	utility
+Orb of Twisting Fate	left out	enemy turn
+Ordained Purpose	contributes	damage
+Organsight	contributes	offense
+Osseous Cage	left out	movement
+Outcast's Curse	left out	skill-only
+Over the Coals	contributes	damage
+Overflowing Sorrow	left out	enemy turn
+Overselling Flourish	left out	enemy action
+Overstuff	contributes	debuff
+Overwhelming Memory	contributes	debuff
+Overwhelming Presence	left out	enemy turn
+Owb Pact	left out	summon
+Pack Attack	contributes	offense
+Pack Breaker	contributes	debuff
+Pact Broker	left out	enemy action
+Painful Vibrations	contributes	damage
+Painted Scout	left out	utility
+Palm-Held Sun	contributes	damage
+Paralyze	contributes	debuff
+Paranoia	left out	enemy turn
+Parch	contributes	debuff
+Part the Mists to Paradise	left out	utility
+Path of Least Resistance	left out	movement
+Patron's Puppet	left out	utility
+Pave Ground	left out	utility
+Peaceful Bubble	left out	utility
+Peaceful Rest	left out	utility
+Peer Into the Past	left out	utility
+Penumbral Disguise	left out	skill-only
+Penumbral Shroud	left out	utility
+Perceive the Threads of Fate	contributes	offense
+Percussive Impact	contributes	damage
+Perfect Strike	contributes	offense
+Perfected Body	left out	enemy action
+Perfected Mind	contributes	cure
+Perfected Thrall	contributes	damage
+Perfection of Essence	left out	utility
+Pernicious Poltergeist	contributes	damage
+Perseis's Precautions	left out	utility
+Persistent Servant	left out	utility
+Personal Blizzard	contributes	damage
+Personal Ocean	left out	enemy turn
+Personal Rain Cloud	contributes	damage
+Pest Form	left out	utility
+Pest Swarm	contributes	damage
+Pet Cache	left out	utility
+Petrify	left out	enemy turn
+Phantasmagoria	contributes	damage
+Phantasmal Custodians	left out	utility
+Phantasmal Killer	contributes	damage
+Phantasmal Minion	left out	summon
+Phantasmal Protagonist	contributes	damage
+Phantasmal Treasure	left out	enemy turn
+Phantom Crowd	left out	movement
+Phantom Pain	contributes	damage
+Phantom Prison	left out	enemy turn
+Phantom Ship	left out	utility
+Phase Familiar	left out	utility
+Pied Piping	left out	enemy turn
+Pierce the Sky	contributes	damage
+Pillar of Water	left out	utility
+Pillars of Sand	left out	movement
+Pin the Spears in the Lamb	left out	movement
+Pinpoint	left out	utility
+Plague Shot	left out	long cast
+Planar Displacement	left out	utility
+Planar Palace	left out	utility
+Planar Seal	left out	utility
+Planar Servitor	left out	summon
+Planar Tether	left out	utility
+Plant Form	left out	battle form
+Plant Growth	left out	utility
+Plasma Whirl	contributes	damage
+Pocket Library	left out	utility
+Portrait of Spite	left out	long cast
+Portrait of the Artist	left out	utility
+Possession	left out	enemy turn
+Power Word Blind	contributes	debuff
+Power Word Kill	contributes	damage
+Power Word Stun	left out	enemy turn
+Power of the Beasts	left out	utility
+Practice Makes Perfect	left out	skill-only
+Precious Gleam	contributes	offense
+Precious Metals	contributes	offense
+Pressure Zone	contributes	debuff
+Prestidigitation	left out	utility
+Primal Call	left out	summon
+Primal Chorus	left out	utility
+Primal Herd	left out	battle form
+Primal Phenomenon	left out	utility
+Primal Summons	left out	summon
+Prismatic Armor	left out	enemy turn
+Prismatic Shield	left out	enemy turn
+Prismatic Sphere	left out	enemy turn
+Prismatic Spray	contributes	damage
+Prismatic Wall	contributes	damage
+Procyal Philosophy	contributes	offense
+Project Image	left out	utility
+Proliferating Eyes	left out	utility
+Prophet's Luck	left out	enemy action
+Propulsive Breeze	left out	movement
+Protect Companion	left out	enemy turn
+Protective Wards	left out	enemy turn
+Protector Tree	left out	enemy turn
+Protector's Sacrifice	left out	enemy action
+Protector's Sphere	left out	enemy turn
+Proximal Shift	contributes	damage
+Prying Survey	left out	utility
+Psychic Outburst	contributes	damage
+Puff of Poison	contributes	damage
+Pulse of Civilization	left out	utility
+Pulverizing Wake	contributes	damage
+Pummeling Rubble	contributes	damage
+Punishing Winds	left out	movement
+Puppet Strings	contributes	debuff
+Purging Toxins	left out	utility
+Purify Soul Path	left out	utility
+Purify Tanglebriar	left out	utility
+Purple Worm Sting	contributes	damage
+Pushing Gust	contributes	debuff
+Putrefy Food and Drink	left out	utility
+Pyrotechnics	contributes	debuff
+Qi Blast	contributes	damage
+Qi Form	contributes	offense
+Qi Rush	left out	enemy turn
+Quandary	left out	enemy turn
+Quantic Dampening	left out	enemy turn
+Quench	contributes	damage
+Quick Sort	left out	utility
+Quicken Time	contributes	offense
+Radiant Field	contributes	debuff
+Radiant Globe	left out	enemy turn
+Radiant Heart of Devotion	contributes	offense
+Raga of Remembrance	left out	utility
+Rainbow Fumarole	contributes	damage
+Raise Dead	left out	utility
+Raise Runelord	left out	summon
+Rally Point	left out	movement
+Rallying Banner	contributes	offense
+Ranage's Circle	contributes	debuff
+Ranger's Bramble	contributes	damage
+Ransack the Night	left out	long cast
+Rapid Adaptation	left out	utility
+Rapid Retreat	left out	enemy action
+Ravening Maw	left out	enemy action
+Ravenous Portal	left out	summon
+Ravenous Reanimation	left out	utility
+Ray of Corruption	contributes	damage
+Ray of Frost	contributes	damage
+Read Aura	left out	utility
+Read Fate	left out	utility
+Read Omens	left out	utility
+Read the Air	left out	utility
+Reanimate Foe	left out	summon
+Reaper's Lantern	left out	enemy turn
+Reblooded	contributes	damage
+Rebounding Barrier	left out	enemy action
+Rebuke Death	contributes	healing
+Recall Legacy	left out	utility
+Recall Past Life	left out	utility
+Reclined Apport	left out	utility
+Recurring Nightmare	contributes	debuff
+Redact	left out	utility
+Redistribute Potential	contributes	damage
+Reed Whistle	left out	utility
+Reflected Beauty	left out	utility
+Reflective Scales	left out	enemy turn
+Regale the Lost Ones	left out	long cast
+Regenerate	contributes	healing
+Reincarnate	left out	utility
+Reinforce Eidolon	left out	enemy turn
+Reinforced Rations	left out	utility
+Release the Ego to Restore the Soul	left out	utility
+Remake	left out	utility
+Remake Physiology	contributes	debuff
+Repel Metal	left out	enemy action
+Repelling Pulse	contributes	damage
+Replicate	left out	utility
+Repulsion	left out	movement
+Resist Energy	left out	enemy turn
+Resolute Obliteration	left out	utility
+Resplendent Mansion	left out	utility
+Rest Eternal	left out	utility
+Restoration	left out	long cast
+Restorative Moment	contributes	cure
+Restore Ground	left out	utility
+Restraining Chains	contributes	debuff
+Restyle	left out	utility
+Resurrect	left out	utility
+Retreat Among the Rains	left out	utility
+Retributive Pain	left out	enemy action
+Retrieving Hook	contributes	debuff
+Retrocognition	left out	utility
+Return Beacon	left out	utility
+Return To Essence	left out	utility
+Return the Favor	contributes	healing
+Revealing Light	contributes	debuff
+Revel in Retribution	left out	enemy action
+Reverse Gravity	contributes	debuff
+Rewinding Step	left out	movement
+Rewrite Memory	left out	utility
+Rewrite Possibility	contributes	offense
+Rigid Form	left out	enemy action
+Ring of Truth	left out	utility
+Rip the Spirit	contributes	damage
+Rising Surf	left out	movement
+Rite of Cleansing Flame	left out	utility
+Rite of Repatriation	left out	utility
+Rite of the Red Star	left out	utility
+Ritual Obstruction	left out	utility
+River Carving Mountains	left out	enemy turn
+Roar of the Dragon	contributes	debuff
+Roaring Applause	left out	enemy turn
+Rolling Boulders	left out	long cast
+Root Reading	left out	utility
+Rope Trick	left out	utility
+Rousing Splash	contributes	healing
+Rubble Step	left out	movement
+Rude Awakening	contributes	cure
+Rune Trap	left out	long cast
+Rune of Observation	left out	utility
+Runic Body	contributes	offense
+Runic Impression	contributes	offense
+Runic Weapon	contributes	offense
+Rusting Grasp	contributes	damage
+Sacred Beasts	contributes	damage
+Sacred Covenant	left out	enemy action
+Sacred Form	left out	battle form
+Sacred Nimbus	contributes	damage
+Safe Passage	left out	utility
+Safeguard Secret	left out	utility
+Sage's Curse	left out	skill-only
+Sanctuary	left out	enemy action
+Sand Form	left out	enemy turn
+Sanguine Transference	left out	movement
+Saturate	left out	movement
+Savor the Sting	contributes	damage
+Sawtooth Terrain	contributes	damage
+Schadenfreude	left out	enemy action
+Scholarly Recollection	left out	utility
+Scintillating Safeguard	left out	enemy action
+Scouring Sand	left out	enemy turn
+Scouting Eye	left out	utility
+Scramble Body	contributes	debuff
+Scrounger's Glee	contributes	debuff
+Scrying	left out	utility
+Scrying Ripples	left out	utility
+Sculpt Appearance	left out	utility
+Sculpt Sound	contributes	debuff
+Sea Surge	contributes	damage
+Sea of Thought	contributes	debuff
+Seal Fate	contributes	debuff
+Searing Rain	contributes	damage
+Seashell of Stolen Sound	left out	utility
+Secret Chest	left out	utility
+Secret Page	left out	utility
+Secure Siege Weapons	left out	utility
+See the Unseen	contributes	offense
+Seed of Mercy	left out	utility
+Seize Identity	contributes	damage
+Seize Soul	left out	utility
+Sending	left out	utility
+Separation	left out	utility
+Sepulchral Mask	contributes	damage
+Serrate	contributes	offense
+Shadow Army	contributes	damage
+Shadow Blast	contributes	damage
+Shadow Double	left out	summon
+Shadow Form	contributes	offense
+Shadow Illusion	contributes	damage
+Shadow Jump	left out	movement
+Shadow Projectile	contributes	damage
+Shadow Siphon	left out	enemy action
+Shadow Spy	left out	utility
+Shadow Zombie	left out	enemy turn
+Shadow's Web	contributes	damage
+Shaken Confidence	left out	enemy action
+Shall not Falter, Shall not Rout	contributes	healing
+Shambling Horror	left out	summon
+Shape Stone	contributes	debuff
+Shape Wood	left out	utility
+Share Burden	left out	enemy action
+Share Life	left out	enemy turn
+Share Lore	left out	utility
+Shared Invisibility	contributes	offense
+Shared Nightmare	contributes	debuff
+Shatter	left out	utility
+Sheltering Wings	left out	enemy turn
+Shepherd of Souls	left out	enemy action
+Shield	left out	enemy turn
+Shielded Arm	left out	enemy turn
+Shielding Formation	left out	enemy turn
+Shielding Strike	contributes	damage
+Shields of the Spirit	contributes	damage
+Shift Blame	left out	utility
+Shift Perspective	left out	utility
+Shifting Form	contributes	offense
+Shifting Sand	contributes	debuff
+Shillelagh	contributes	offense
+Shining Starlight Attack	contributes	damage
+Shipwreck	left out	utility
+Shockwave	contributes	damage
+Shooting Star	contributes	damage
+Show the Path	contributes	offense
+Show the Way	left out	utility
+Shrink	left out	utility
+Shrink Item	left out	utility
+Shrink the Span	left out	movement
+Shroud of Night	left out	enemy turn
+Shroud of the Mantis	contributes	offense
+Shroud of the Provinces	left out	utility
+Siege Weapon's Blessing	left out	utility
+Sigil	left out	utility
+Sign of Conviction	contributes	damage
+Signal Skyrocket	contributes	damage
+Silence	left out	enemy turn
+Silver Spear	contributes	damage
+Silver's Refrain	contributes	offense
+Skeletal Lancers	contributes	damage
+Skeleton Army	contributes	damage
+Sky Laughs at Waves	contributes	damage
+Sky Sight	left out	utility
+Sky Signs	left out	utility
+Skyglass Prison	contributes	damage
+Slashing Gust	contributes	damage
+Sleep	contributes	debuff
+Sleepless Season	left out	long cast
+Sliding Blocks	left out	utility
+Slime Spit	contributes	damage
+Slither	contributes	damage
+Slough Skin	contributes	cure
+Snake Fangs	contributes	offense
+Snare Hopping	left out	utility
+Snowball	contributes	damage
+Soft Landing	left out	utility
+Solid Fog	left out	enemy turn
+Sonata Span	left out	utility
+Song of Marching	left out	utility
+Song of Silver	left out	long cast
+Song of Strength	left out	skill-only
+Song of the Fallen	contributes	damage
+Soothing Blossoms	contributes	cure
+Soothing Mist	contributes	damage+healing
+Soothing Spring	left out	long cast
+Soul Cutter	contributes	damage
+Soulshelter Vessel	contributes	healing
+Sound Body	contributes	cure
+Space Fold Gate	left out	movement
+Speak With Magic	left out	utility
+Speak With Water	left out	utility
+Speak with Animals	left out	utility
+Speak with Plants	left out	utility
+Speak with Stones	left out	utility
+Speaking Sky	contributes	offense
+Spectral Advance	left out	movement
+Spell Immunity	left out	enemy turn
+Spell Riposte	left out	enemy action
+Spell Turning	left out	enemy action
+Spellmaster's Ward	left out	enemy turn
+Spellsurge	contributes	offense
+Spellwrack	contributes	damage
+Spider Sting	contributes	damage
+Spike Stones	left out	enemy action
+Spinning Staff	contributes	damage
+Spirit Object	contributes	damage
+Spirit Sense	left out	enemy turn
+Spirit Song	contributes	damage
+Spirit Veil	contributes	offense
+Spirit Ward	left out	enemy turn
+Spirit of the Beast	left out	enemy turn
+Spiritual Anamnesis	left out	enemy turn
+Spiritual Armament	contributes	damage
+Spiritual Attunement	contributes	offense
+Spiritual Epidemic	contributes	debuff
+Spiritual Guardian	contributes	damage
+Spiritual Renewal	contributes	healing
+Spiritual Transport	left out	movement
+Splinter Volley	contributes	damage
+Split Shadow	left out	summon
+Split the Tongue	left out	enemy action
+Spontaneous Cartography	left out	utility
+Sprawling Tunnels	left out	utility
+Spray of Salt	contributes	damage
+Spy's Mark	left out	utility
+Stabilize	left out	utility
+Stagnate Time	left out	enemy turn
+Stars of Another Sky	contributes	debuff
+Stasis	left out	enemy turn
+Statuette	left out	utility
+Status	left out	utility
+Steal Shadow	contributes	damage
+Steal Voice	left out	enemy turn
+Steal the Sky	contributes	damage
+Steel Fortifications	left out	enemy turn
+Stick On	left out	movement
+Still Life Storage	left out	utility
+Sting of the Sea	left out	enemy turn
+Stinking Cloud	contributes	debuff
+Stone to Flesh	contributes	cure
+Stonesense	left out	utility
+Store Time	contributes	offense
+Storm of Vengeance	contributes	damage
+Stormwind Flight	left out	movement
+Strange Geometry	left out	movement
+Strength of Mind	left out	enemy turn
+String of Fate	left out	enemy turn
+Stumbling Curse	left out	skill-only
+Subconscious Suggestion	left out	utility
+Subjugate Undead	left out	enemy turn
+Sudden Recollection	left out	utility
+Sudden Shift	left out	enemy action
+Sudden Swarm	contributes	damage
+Sudden Transposition	contributes	damage
+Suffocate	contributes	damage
+Suggestion	left out	enemy turn
+Summerland Spell	left out	utility
+Summon Anarch	left out	summon
+Summon Ancient Fleshforged	contributes	damage
+Summon Animal	left out	summon
+Summon Axiom	left out	summon
+Summon Celestial	left out	summon
+Summon Construct	left out	summon
+Summon Dragon	left out	summon
+Summon Elemental	left out	summon
+Summon Elemental Herald	contributes	damage
+Summon Entity	left out	summon
+Summon Fey	left out	summon
+Summon Fiend	left out	summon
+Summon Giant	left out	summon
+Summon Healing Servitor	contributes	damage+healing
+Summon Instrument	left out	utility
+Summon Irii	contributes	offense
+Summon Lesser Servitor	left out	summon
+Summon Monitor	left out	summon
+Summon Oliphaunt of Jandelay	contributes	damage
+Summon Plant or Fungus	left out	summon
+Summon Stampede	contributes	damage
+Summon Undead	left out	summon
+Summon Warden of the Wild	contributes	damage
+Summoner's Precaution	left out	long cast
+Summoner's Visage	left out	utility
+Sun Blade	contributes	damage
+Sun's Fury	contributes	offense
+Sunburst	contributes	damage
+Supreme Connection	left out	utility
+Sure Footing	contributes	cure
+Sure Strike	contributes	offense
+Swamp of Sloth	contributes	damage
+Swampcall	contributes	debuff
+Swarm Form	contributes	debuff
+Swarming Wasp Stings	contributes	damage
+Swarmsense	left out	utility
+Swear Oath	contributes	offense
+Sweet Dream	left out	utility
+Sweetest Solstice	left out	long cast
+Symphony of the Unfettered Heart	contributes	cure
+Synchronize	left out	utility
+Synchronize Steps	left out	movement
+Synesthesia	contributes	debuff
+Tacky Pine Sap	contributes	damage
+Tailwind	left out	movement
+Take Root	left out	enemy turn
+Take Your Places	left out	movement
+Take its Course	contributes	damage
+Talking Corpse	left out	utility
+Tame	left out	utility
+Tangle Vine	left out	movement
+Tanglecurse	contributes	debuff
+Tangling Creepers	left out	movement
+Tattoo Whispers	left out	utility
+Tear the Veil	contributes	damage
+Teeth to Terror	contributes	damage
+Telekinetic Hand	left out	utility
+Telekinetic Haul	left out	utility
+Telekinetic Maneuver	contributes	debuff
+Telekinetic Projectile	contributes	damage
+Telekinetic Rend	contributes	damage
+Telepathic Bond	left out	utility
+Telepathic Demand	left out	enemy turn
+Telepathy	left out	utility
+Teleport	left out	utility
+Teleportation Circle	left out	utility
+Tempest Cloak	left out	enemy turn
+Tempest Form	left out	enemy turn
+Tempest Touch	contributes	damage
+Temporal Distortion	contributes	debuff
+Temporal Twin	contributes	offense
+Temporal Ward	left out	enemy action
+Temporary Glyph	left out	enemy action
+Temporary Possession	contributes	debuff
+Temporary Tool	left out	utility
+Tempt Fate	left out	enemy action
+Tenebrous Freedom	contributes	debuff
+Tentacular Innervation	contributes	damage
+Tentacular Limbs	left out	utility
+Terminate Bloodline	left out	long cast
+Terrain Transposition	left out	movement
+Tesseract Tunnel	left out	movement
+Tether	left out	movement
+The Everfull Moon	left out	battle form
+The Four Hunters	contributes	healing
+The Parrot's Whisper	left out	utility
+The Queen's Rainbow	contributes	debuff
+The Unseeing Blade Master	left out	utility
+The World's a Stage	left out	utility
+Theogeny	contributes	offense
+Thermal Remedy	left out	long cast
+Thermal Stasis	left out	enemy turn
+Thicket of Knives	left out	skill-only
+Thief of Fortune	contributes	offense
+Thoughtful Gift	left out	utility
+Thrall Charge	contributes	damage
+Threatening Mimicry	contributes	debuff
+Threefold Aspect	left out	utility
+Threefold Limb	contributes	damage
+Thunder Echo	left out	utility
+Thunderburst	contributes	damage
+Thundering Dominance	contributes	offense
+Tidal Surge	left out	movement
+Time Beacon	contributes	offense
+Time Jump	left out	movement
+Time Pocket	left out	utility
+Time Sense	left out	utility
+Time Skip	contributes	offense
+Timely Reminder	left out	utility
+Timely Tutor	left out	utility
+Tiny Wings	left out	movement
+Tireless Worker	contributes	cure
+Tomorrow's Dawn	contributes	debuff
+Tornadic Gale	contributes	damage
+Tortoise and the Hare	contributes	offense
+Torturous Trauma	contributes	damage
+Touch of Death	contributes	damage
+Touch of Obedience	contributes	debuff
+Touch of Undeath	contributes	damage
+Touch of the Moon	contributes	offense
+Touch of the Void	contributes	damage+healing
+Tracing Bond	left out	utility
+Tracking Mayflies	contributes	damage
+Trade Items	left out	utility
+Transcribe Conflict	left out	utility
+Transcribe Moment	left out	utility
+Translate	left out	utility
+Translocate	left out	movement
+Transmigrate	left out	utility
+Transmute Rock And Mud	contributes	damage
+Travel by Turtle	left out	utility
+Traveler's Transit	left out	movement
+Traveling Workshop	left out	utility
+Tree of Life and Death	contributes	damage+healing
+Tree of Seasons	contributes	damage
+Tremor Signs	left out	utility
+Tremorsense	left out	utility
+Trickster's Feathers	left out	utility
+Trickster's Twin	contributes	debuff
+Trim the Blight	contributes	damage
+Triple Time	left out	movement
+True Target	contributes	offense
+Truesight	left out	utility
+Truespeech	left out	utility
+Turbulent Tide	contributes	damage
+Turnip Lantern	left out	enemy turn
+Ulcerous Canker	contributes	damage
+Umbral Extraction	contributes	debuff
+Umbral Graft	contributes	debuff
+Umbral Journey	left out	utility
+Umbral Mindtheft	contributes	damage
+Unbearable Cacophony	left out	long cast
+Unblinking Flame Aura	contributes	healing
+Unblinking Flame Emblem	contributes	offense
+Unblinking Flame Ignition	left out	enemy action
+Unblinking Flame Revelation	contributes	offense
+Unbounded Sphere	left out	movement
+Unbreaking Wave Advance	contributes	damage
+Unbreaking Wave Barrier	contributes	debuff
+Unbroken Panoply	left out	utility
+Uncontrollable Dance	contributes	debuff
+Uncouple Memory	left out	utility
+Uncover Device	left out	utility
+Undeath's Blessing	contributes	debuff
+Undermine Reality	left out	enemy turn
+Undertaker	contributes	damage
+Undertow	contributes	damage
+Unending Tears	contributes	debuff
+Unexpected Transposition	left out	enemy action
+Unexpected Windfall	contributes	debuff
+Unfathomable Song	contributes	debuff
+Unfetter Eidolon	left out	utility
+Unfettered Mark	left out	utility
+Unfettered Movement	contributes	cure
+Unfettered Pack	left out	movement
+Unfolding Wind Blitz	contributes	damage
+Unfolding Wind Buffet	contributes	damage
+Unfolding Wind Rush	left out	movement
+Unholy Army	contributes	damage
+Unimpeded Stride	contributes	cure
+Unity	left out	enemy action
+Unravel Knowledge	left out	enemy action
+Unraveling Blast	contributes	damage
+Unrelenting Gravity	contributes	debuff
+Unrelenting Observation	contributes	offense
+Unsealing of Secrets	left out	utility
+Unseasonable Squall	contributes	debuff
+Unseen Heralds	left out	utility
+Unsettling Knowledge	contributes	debuff
+Unsettling Perspective	contributes	damage
+Unspeakable Shadow	contributes	debuff
+Untamed Form	left out	battle form
+Untamed Shift	contributes	offense
+Untwisting Iron Augmentation	contributes	offense
+Untwisting Iron Buffer	contributes	healing
+Untwisting Iron Pillar	contributes	healing
+Unusual Anatomy	contributes	damage
+Upheaval	contributes	damage
+Uplifting Overture	left out	skill-only
+Utter Destruction	contributes	damage
+Vacuum	left out	enemy turn
+Vampiric Maiden	contributes	damage
+Vampiric Revelry	contributes	damage
+Vanish Weapon	left out	enemy action
+Vanishing Tracks	left out	utility
+Vapor Form	left out	enemy turn
+Variable Gravity	left out	utility
+Vector Screen	left out	enemy turn
+Veil of Broken Reality	left out	enemy turn
+Veil of Confidence	contributes	cure
+Veil of Dreams	contributes	debuff
+Veil of Privacy	left out	utility
+Veil of Spirits	contributes	debuff
+Vengeful Glare	contributes	damage
+Ventriloquism	left out	utility
+Verdant Sprout	left out	utility
+Verminous Lure	left out	utility
+Vibrant Pattern	contributes	debuff
+Vibrant Thorns	left out	enemy action
+Vibrant Vibrato	contributes	damage
+Vicious Jealousy	left out	enemy turn
+Victory Cry	contributes	offense
+Vindicator's Judgment	contributes	debuff
+Vision of Beauty	contributes	debuff
+Vision of Death	contributes	damage
+Vision of Weakness	contributes	offense
+Vital Beacon	left out	long cast
+Vital Luminance	contributes	healing
+Vital Singularity	left out	long cast
+Vitrifying Blast	contributes	damage
+Voice on the Breeze	left out	utility
+Void Harvest	left out	long cast
+Volcanic Eruption	contributes	damage
+Wails of the Damned	contributes	damage
+Waking Dream	contributes	debuff
+Waking Nightmare	contributes	debuff
+Wall Of Mirrors	contributes	damage
+Wall of Fire	contributes	damage
+Wall of Flesh	contributes	damage
+Wall of Force	left out	utility
+Wall of Ice	left out	enemy action
+Wall of Metal	left out	utility
+Wall of Shadow	left out	utility
+Wall of Shrubs	left out	enemy turn
+Wall of Stone	left out	utility
+Wall of Thorns	left out	enemy action
+Wall of Virtue	left out	enemy action
+Wall of Water	left out	utility
+Wall of Wind	left out	enemy turn
+Wanderer's Guide	left out	utility
+Ward Domain	left out	utility
+Warding Aggression	contributes	damage
+Warning Stripes	left out	enemy action
+Warp Mind	contributes	debuff
+Warp Step	left out	movement
+Warped Terrain	left out	movement
+Warping Pull	left out	enemy action
+Warrior's Regret	left out	enemy action
+Warshard Shot	contributes	damage
+Wash Your Luck	left out	enemy turn
+Watchdog	left out	utility
+Water Breathing	left out	utility
+Water Walk	left out	utility
+Waterproof	left out	utility
+Waters of Prediction	left out	utility
+Wave of Despair	left out	enemy turn
+Weaken Earth	contributes	debuff
+Weapon Storm	contributes	damage
+Weapon Surge	contributes	offense
+Weapon Tide	contributes	damage
+Weapon Trance	contributes	offense
+Weapon of Judgment	left out	enemy action
+Weaponize Secret	left out	enemy action
+Weave Wood	left out	utility
+Web	left out	movement
+Web of Eyes	contributes	offense
+Web of Influence	left out	utility
+Weird	contributes	damage
+Whirling Scarves	left out	enemy turn
+Whirlpool	contributes	damage
+Whirlwind	contributes	damage
+Whispering Quiet	left out	utility
+Whispers of a Dead Goddess	left out	enemy turn
+Whispers of the Void	contributes	damage
+Wild Allegiance	left out	utility
+Wild Feast	left out	utility
+Wild Winds Stance	contributes	offense
+Wildfire	contributes	damage
+Wilding Word	left out	enemy turn
+Wind Jump	left out	movement
+Wind Whispers	left out	utility
+Wings of the Valkyrie	left out	movement
+Winning Streak	contributes	offense
+Winter Bolt	contributes	damage
+Winter's Breath	left out	long cast
+Wisdom of the Winds	left out	utility
+Wish	left out	utility
+Wish Market	left out	skill-only
+Wish-Twisted Form	contributes	debuff
+With Friends like These	contributes	debuff
+Withering Grasp	contributes	damage
+Wood Walk	left out	movement
+Wooden Double	left out	enemy action
+Wooden Fists	contributes	offense
+Word of Freedom	contributes	cure
+Word of Revision	left out	enemy action
+Word of Truth	left out	skill-only
+Wordsmith	left out	utility
+World in Shadow	left out	utility
+Worm's Repast	contributes	damage
+Wrathful Storm	contributes	damage
+Wronged Monk's Wrath	contributes	damage
+Wyvern Sting	contributes	damage
+Ymeri's Mark	contributes	damage
+You're Mine	left out	enemy turn
+Zeal for Battle	left out	utility
+Zealous Conviction	contributes	healing
+Zenith Star	contributes	debuff
+Zephyr Slip	left out	movement
+Zero Gravity	left out	movement
+Zombie Horde	contributes	damage

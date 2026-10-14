@@ -13,6 +13,7 @@
 
 #include <map>
 #include <optional>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -31,8 +32,10 @@ struct SpellConversion
 /**
  * @brief   Converts one spell from Foundry's data into a content definition.
  * @details Maps the name, rank (or cantrip), casting time, traits, attack roll or save, damage or healing, and
- *          both kinds of heightening. Degree-of-success paragraphs are read when every phrase in them is
- *          understood: condition links, "unaffected", and no, half, full or double damage.
+ *          both kinds of heightening. Degree-of-success paragraphs are read one sentence at a time: no, half, full
+ *          or double damage, conditions the engine models, bonuses and penalties to rolls, and "as a failure,
+ *          but…". What a sentence adds beyond that is listed in the warnings, unless it changes what the sentence
+ *          means (if, when, your choice…), which skips the spell.
  *
  *          A spell with no attack roll, save, damage or healing is converted from its linked spell effect
  *          (unconditional flat bonuses, and conditions it grants), or from a sentence that gives its target a
@@ -45,6 +48,26 @@ struct SpellConversion
  */
 SpellConversion ConvertFoundrySpell(const std::string& foundryJson,
                                     const std::map<std::string, std::string>& spellEffects = {});
+
+/**
+ * @brief   The hand triage of Foundry's spells: which ones change damage or healing in a fight.
+ */
+struct SpellTriage
+{
+    std::set<std::string> contributing;          /**< Spells worth importing. */
+    std::map<std::string, std::string> leftOut;  /**< Spells never to import, with the group that says why. */
+};
+
+/**
+ * @brief   Reads the triage list (tools/data/spell-triage.tsv).
+ * @details Tab-separated: a header line "name, verdict, group", then one spell per line, whose verdict is
+ *          "contributes" or "left out". Lines starting with # are comments.
+ * @param   [in] tsv - The list's contents.
+ * @return  The triage.
+ * @throws  std::runtime_error if a line doesn't have the three fields, a verdict is unknown, or a spell is listed
+ *          twice.
+ */
+SpellTriage ReadSpellTriage(const std::string& tsv);
 
 /**
  * @brief   Evaluates a formula from Foundry's rules, such as "ternary(gte(@item.level,6),2,1)", for one rank.

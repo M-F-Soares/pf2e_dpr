@@ -10,9 +10,14 @@
 
 #include <nlohmann/json.hpp>
 
+#include <fstream>
 #include <map>
+#include <set>
+#include <sstream>
+#include <stdexcept>
 #include <string>
 #include <utility>
+#include <vector>
 
 namespace
 {
@@ -407,7 +412,8 @@ TEST_CASE("import: spells that can't be converted faithfully are skipped, with t
     CHECK(changed([](Json& system) { system["defense"]["save"]["basic"] = false; }) ==
           "the save isn't basic, and the outcomes aren't listed");
     CHECK(changed([](Json& system) {
-              system["description"]["value"] = "<p><strong>Failure</strong> The target is pushed 10 feet.</p>";
+              system["description"]["value"] =
+                  "<p><strong>Failure</strong> The target takes full damage. The target takes half damage.</p>";
           }) == "outcome text isn't understood");
     CHECK(changed([](Json& system) {
               system["defense"]["save"]["basic"] = false;
@@ -415,14 +421,9 @@ TEST_CASE("import: spells that can't be converted faithfully are skipped, with t
           }) == "has damage, but the outcomes don't say how much");
     CHECK(ConvertFoundrySpell("{not json").skipReason == "data isn't in the expected format");
 
-    // Conditions the engine doesn't model convert, but don't load.
-    SpellConversion fleeing = ConvertFoundrySpell(
-        SaveSpell("<p><strong>Failure</strong> The target is "
-                  "@UUID[Compendium.pf2e.conditionitems.Item.Fleeing]{Fleeing}.</p>")
-            .dump());
-    ContentLibrary library;
-    CHECK_THROWS_WITH_AS(library.AddJson(fleeing.definition, "import.json"),
-                         doctest::Contains("unknown condition \"fleeing\""), ContentError);
+    // A condition the engine doesn't model, and that matters to the party.
+    CHECK(SkipReason(SaveSpell("<p><strong>Failure</strong> The target is " + ConditionLink("Petrified") + ".</p>")) ==
+          "unknown condition \"petrified\"");
 }
 
 TEST_CASE("import: what the conversion leaves out is listed as a warning")
@@ -625,4 +626,198 @@ TEST_CASE("import: \"takes no damage\" is no damage")
     ActionPtr blast = Import(spell).Use("Test Blast", MakeCaster());
     CHECK(blast->outcomes[kCritSuccess].damage == DamageScale::None);
     CHECK(blast->outcomes[kFail].damage == DamageScale::Normal);
+}
+
+TEST_CASE("import: outcomes are read one sentence at a time")
+{
+    Character caster = MakeCaster();
+
+    // A sentence with more words than the converter reads is applied, one with nothing it reads is ignored, and a
+    // condition that only matters on the enemy's turn is dropped; each is listed.
+    std::string text = "<p><strong>Success</strong> The creature is grabbed by the earth.</p>"
+                       "<p><strong>Failure</strong> The target is " +
+                       ConditionLink("Blinded") +
+                       " and fleeing for 1 round. It can attempt a new save at the end of each of its turns.</p>";
+    CHECK(ConvertFoundrySpell(SaveSpell(text).dump()).warnings ==
+          std::vector<std::string>{"Success: read only part of \"the creature is grabbed by the earth\"",
+                                   "Failure: ignored \"it can attempt a new save at the end of each of its turns\"",
+                                   "Failure: dropped fleeing (only matters on the enemy's turn)"});
+    ActionPtr spell = Import(SaveSpell(text)).Use("Test Scare", caster);
+    REQUIRE(spell->outcomes[kSuccess].conditions.size() == 1);
+    CHECK(spell->outcomes[kSuccess].conditions[0].kind == ConditionKind::Grabbed);
+    REQUIRE(spell->outcomes[kFail].conditions.size() == 1);
+    CHECK(spell->outcomes[kFail].conditions[0].kind == ConditionKind::Blinded);
+
+    // Bonuses and penalties to rolls become modifiers, each with its own source; "as a failure, but…" builds on
+    // the failure.
+    ActionPtr penalties =
+        Import(SaveSpell("<p><strong>Failure</strong> The target takes a –1 status penalty to attack rolls and a -2 "
+                         "circumstance penalty to AC and saves.</p>"
+                         "<p><strong>Critical Failure</strong> As failure, but the target is also " +
+                         ConditionLink("Frightened", "Frightened 2") + ".</p>"))
+            .Use("Test Scare", caster);
+    const auto& failure = penalties->outcomes[kFail].modifiers;
+    REQUIRE(failure.size() == 2);
+    CHECK(failure[0].mod.type == BonusType::Status);
+    CHECK(failure[0].mod.value == -1);
+    CHECK(failure[0].mod.applies.anyOf == std::vector<Tags>{Tag::AttackRoll});
+    CHECK(failure[0].to == Who::Enemy);
+    CHECK(failure[1].mod.type == BonusType::Circumstance);
+    CHECK(failure[1].mod.value == -2);
+    CHECK(failure[1].mod.applies.anyOf == std::vector<Tags>{Tag::AC, Tag::Fort, Tag::Ref, Tag::Will});
+    CHECK(failure[1].mod.source == "Test Scare (2)");
+    CHECK(penalties->outcomes[kCritFail].modifiers.size() == 2);
+    REQUIRE(penalties->outcomes[kCritFail].conditions.size() == 1);
+    CHECK(penalties->outcomes[kCritFail].conditions[0].value == 2);
+
+    // Words that change what a sentence means skip the spell, rather than guess.
+    const std::string unreadable = "an outcome depends on something the converter can't read";
+    CHECK(SkipReason(SaveSpell("<p><strong>Failure</strong> If the target is undead, it is " +
+                               ConditionLink("Frightened", "Frightened 1") + ".</p>")) == unreadable);
+    CHECK(SkipReason(SaveSpell("<p><strong>Failure</strong> You are " + ConditionLink("Quickened") + ".</p>")) ==
+          unreadable);
+    CHECK(SkipReason(SaveSpell("<p><strong>Failure</strong> The target is afflicted with a curse at stage 1.</p>")) ==
+          "inflicts an affliction, which isn't converted");
+    CHECK(SkipReason(SaveSpell("<p><strong>Failure</strong> The target gains weakness 5 to fire.</p>")) ==
+          "an outcome gives a weakness, which isn't converted");
+    // Outcomes that, read, do nothing.
+    CHECK(SkipReason(SaveSpell("<p><strong>Success</strong> The target is unaffected.</p>"
+                               "<p><strong>Failure</strong> The target's shadow flickers.</p>")) ==
+          "outcome text isn't understood");
+}
+
+TEST_CASE("import: what outcomes say about damage")
+{
+    Character caster = MakeCaster();
+    auto withText = [](const std::string& paragraphs) {
+        Json spell = FireSpell();
+        spell["system"]["defense"]["save"]["basic"] = false;
+        spell["system"]["description"]["value"] = paragraphs;
+        return spell;
+    };
+
+    // The spell's own dice, written out, are its full damage; other dice aren't converted.
+    ActionPtr written = Import(withText("<p><strong>Failure</strong> The creature takes 6d6 fire damage.</p>"))
+                            .Use("Test Blast", caster);
+    CHECK(written->outcomes[kFail].damage == DamageScale::Normal);
+    CHECK(SkipReason(withText("<p><strong>Failure</strong> The creature takes full damage and 1d6 persistent bleed "
+                              "damage.</p>")) == "an outcome deals damage of its own, which isn't converted");
+
+    // When all the damage is persistent, what the outcomes say about it is the damage.
+    Json persistent = withText("<p><strong>Success</strong> The target takes half the persistent fire damage.</p>"
+                               "<p><strong>Critical Failure</strong> The target takes double the persistent fire "
+                               "damage.</p>");
+    persistent["system"]["damage"]["xYz1"]["category"] = "persistent";
+    ActionPtr burn = Import(persistent).Use("Test Blast", caster);
+    CHECK(burn->outcomes[kSuccess].damage == DamageScale::Half);
+    CHECK(burn->outcomes[kCritFail].damage == DamageScale::Double);
+
+    // Otherwise the persistent damage must scale with the rest.
+    Json mixed = withText("<p><strong>Success</strong> The creature takes half damage and no persistent damage.</p>");
+    mixed["system"]["damage"]["p"] = {{"applyMod", false}, {"category", "persistent"}, {"formula", "1d6"},
+                                      {"kinds", {"damage"}}, {"type", "fire"}};
+    CHECK(SkipReason(mixed) == "persistent damage scales differently from the rest, which isn't converted");
+    mixed["system"]["description"]["value"] =
+        "<p><strong>Failure</strong> The creature takes full damage and persistent damage.</p>";
+    CHECK(Import(mixed).Use("Test Blast", caster)->outcomes[kFail].damage == DamageScale::Normal);
+
+    // Untyped damage, like Implosion's.
+    Json untyped = FireSpell();
+    untyped["system"]["damage"]["xYz1"]["type"] = "untyped";
+    CHECK(Import(untyped).Use("Test Blast", caster)->damage.front().type == DamageType::Untyped);
+}
+
+TEST_CASE("import: Foundry's overlays become variants")
+{
+    Character caster = MakeCaster(9);
+
+    // One version per number of actions; the 3-action one has no save, so it's left out.
+    Json rain = FireSpell();
+    rain["name"] = "Test Rain";
+    rain["system"]["time"]["value"] = "1 to 3";
+    rain["system"]["damage"]["xYz1"]["formula"] = "4d6";
+    rain["system"]["heightening"]["damage"]["xYz1"] = "1d6";
+    rain["system"]["overlays"] = Json::parse(R"json({
+        "a": {"overlayType": "override", "sort": 1, "system": {"time": {"value": "1"}}},
+        "b": {"overlayType": "override", "sort": 2, "system": {"time": {"value": "2"},
+              "damage": {"xYz1": {"formula": "8d6"}}, "heightening": {"damage": {"xYz1": "2d6"}}}},
+        "c": {"overlayType": "override", "sort": 3, "system": {"time": {"value": "3"}, "defense": null,
+              "damage": {"xYz1": {"formula": "20"}}}}})json");
+    CHECK(ConvertFoundrySpell(rain.dump()).warnings ==
+          std::vector<std::string>{"left out the \"3-action\" version: deals damage with no attack roll or save"});
+    ContentLibrary rains = Import(rain);
+    ActionPtr one = rains.Use("Test Rain", caster, {.variant = "1-action"});
+    CHECK(one->cost == 1);
+    CHECK(one->name == "Test Rain (1a)");
+    CHECK(one->damage.front().count == 4);
+    ActionPtr two = rains.Use("Test Rain", caster, {.rank = 5, .variant = "2-action"});
+    CHECK(two->cost == 2);
+    CHECK(two->damage.front().count == 12);  // 8d6, and 2d6 for each rank above 3
+    CHECK_THROWS_WITH_AS(rains.Use("Test Rain", caster), doctest::Contains("needs a variant"), ContentError);
+
+    // When no version converts, the first one's reason is the spell's.
+    Json broken = rain;
+    broken["system"]["overlays"]["a"]["system"]["defense"] = nullptr;
+    broken["system"]["overlays"]["b"]["system"]["defense"] = nullptr;
+    SpellConversion none = ConvertFoundrySpell(broken.dump());
+    CHECK(none.skipReason == "deals damage with no attack roll or save");
+    CHECK(none.skipDetail == "1-action");
+
+    // A version cast over two turns is left out; with nothing else, the spell is read as it is.
+    Json twoRounds = FireSpell();
+    twoRounds["system"]["time"]["value"] = "2 to 2 rounds";
+    twoRounds["system"]["overlays"] = Json::parse(R"json({"r": {"overlayType": "override", "sort": 1,
+        "system": {"time": {"value": "2 rounds"}}}})json");
+    CHECK(SkipReason(twoRounds) == "takes a variable number of actions");
+
+    // One version per choice made when it's cast.
+    Json breath = FireSpell();
+    breath["name"] = "Test Breath";
+    breath["system"]["damage"]["xYz1"]["type"] = "untyped";
+    breath["system"]["overlays"] = Json::parse(R"json({
+        "f": {"name": "Test Breath (Fire)", "overlayType": "override", "sort": 1,
+              "system": {"damage": {"xYz1": {"type": "fire"}}}},
+        "c": {"name": "Test Breath (Cold)", "overlayType": "override", "sort": 2,
+              "system": {"damage": {"xYz1": {"type": "cold"}}}}})json");
+    ContentLibrary breaths = Import(breath);
+    ActionPtr cold = breaths.Use("Test Breath", caster, {.variant = "cold"});
+    CHECK(cold->damage.front().type == DamageType::Cold);
+    CHECK(cold->name == "Test Breath (Cold)");
+    CHECK(breaths.Use("Test Breath", caster, {.variant = "fire"})->damage.front().type == DamageType::Fire);
+
+    // A spell cast with 2 actions whose overlay takes 3: both are versions.
+    Json torrent = FireSpell();
+    torrent["name"] = "Test Torrent";
+    torrent["system"]["overlays"] = Json::parse(R"json({"t": {"overlayType": "override", "sort": 1,
+        "system": {"time": {"value": "3"}, "area": {"type": "line", "value": 60}}}})json");
+    ContentLibrary torrents = Import(torrent);
+    CHECK(torrents.Use("Test Torrent", caster, {.variant = "2-action"})->cost == 2);
+    CHECK(torrents.Use("Test Torrent", caster, {.variant = "3-action"})->cost == 3);
+}
+
+TEST_CASE("import: the triage list")
+{
+    SpellTriage triage = ReadSpellTriage("# A comment\nname\tverdict\tgroup\nTest Blast\tcontributes\tdamage\r\n"
+                                         "Test Light\tleft out\tutility\n\n");
+    CHECK(triage.contributing == std::set<std::string>{"Test Blast"});
+    CHECK(triage.leftOut == std::map<std::string, std::string>{{"Test Light", "utility"}});
+
+    const std::string header = "name\tverdict\tgroup\n";
+    CHECK_THROWS_WITH_AS(ReadSpellTriage("Test Blast\tcontributes\tdamage\n"),
+                         doctest::Contains("line 1: the first line must be the header"), std::runtime_error);
+    CHECK_THROWS_WITH_AS(ReadSpellTriage(header + "Test Blast\tcontributes\n"),
+                         doctest::Contains("line 2: needs a name, a verdict and a group"), std::runtime_error);
+    CHECK_THROWS_WITH_AS(ReadSpellTriage(header + "Test Blast\tmaybe\tdamage\n"), doctest::Contains("not \"maybe\""),
+                         std::runtime_error);
+    CHECK_THROWS_WITH_AS(ReadSpellTriage(header + "Test Blast\tcontributes\tdamage\nTest Blast\tleft out\tutility\n"),
+                         doctest::Contains("line 3: \"Test Blast\" is listed twice"), std::runtime_error);
+
+    // The project's list reads.
+    std::ifstream file("tools/data/spell-triage.tsv");
+    REQUIRE(file);
+    std::stringstream text;
+    text << file.rdbuf();
+    SpellTriage project = ReadSpellTriage(text.str());
+    CHECK_FALSE(project.contributing.empty());
+    CHECK_FALSE(project.leftOut.empty());
 }
